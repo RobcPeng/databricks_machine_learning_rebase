@@ -39,9 +39,16 @@ resources:
               volume: ${var.volume}
           environment_key: cv_env
 
-        - task_key: train_yolo
+        # Build bronze/silver/gold from the staged data before training reads it.
+        - task_key: run_medallion
           depends_on:
             - task_key: setup_data
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.medallion.id}
+
+        - task_key: train_yolo
+          depends_on:
+            - task_key: run_medallion
           notebook_task:
             notebook_path: ../notebooks/01_train_yolo.py
             base_parameters:
@@ -56,7 +63,7 @@ resources:
 
         - task_key: train_resnet
           depends_on:
-            - task_key: setup_data
+            - task_key: run_medallion
           notebook_task:
             notebook_path: ../notebooks/02_train_resnet.py
             base_parameters:
@@ -71,7 +78,7 @@ resources:
 
         - task_key: train_cnn
           depends_on:
-            - task_key: setup_data
+            - task_key: run_medallion
           notebook_task:
             notebook_path: ../notebooks/03_train_cnn_baseline.py
             base_parameters:

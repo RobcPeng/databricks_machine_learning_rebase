@@ -1,9 +1,9 @@
 """Aggregate the per-model MLflow runs into one gold comparison table.
 
 Reads the latest run per model spec from the family experiments, flattens the
-shared metric columns, and writes them to
-``{catalog}.{schema}.{table_prefix}_comparison`` — the single table a dashboard
-or notebook reads to answer "which model wins on accuracy vs. speed vs. size?".
+shared metric columns, and writes them to the gold table
+``{table_prefix}_gold_model_comparison`` — the single table a dashboard or
+notebook reads to answer "which model wins on accuracy vs. speed vs. size?".
 """
 
 from __future__ import annotations
@@ -50,7 +50,7 @@ def write_comparison(spark, paths: Paths, experiment_root: str) -> str:
     if not rows:
         raise RuntimeError("No finished runs found — did the training tasks succeed?")
 
-    table = paths.table("comparison")
+    table = paths.table("gold", "model_comparison")
     spark.createDataFrame(rows).write.mode("overwrite").option(
         "overwriteSchema", "true").saveAsTable(table.replace("`", ""))
     return table

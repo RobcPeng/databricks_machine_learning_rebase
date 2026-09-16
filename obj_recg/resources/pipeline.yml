@@ -1,0 +1,18 @@
+# Medallion data pipeline (Lakeflow Declarative Pipeline, serverless).
+# bronze (raw COCO ingest via Auto Loader) -> silver (validated instances +
+# image index) -> gold (per-image training manifest). Source lives in
+# ../transformations. Config values are read in the code via spark.conf.get(...).
+resources:
+  pipelines:
+    medallion:
+      name: "[${bundle.target}] uplevels_cv medallion"
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      serverless: true
+      photon: true
+      libraries:
+        - glob:
+            include: ../transformations/**
+      configuration:
+        volume_root: /Volumes/${var.catalog}/${var.schema}/${var.volume}
+        table_prefix: ${var.table_prefix}

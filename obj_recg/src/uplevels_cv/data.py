@@ -39,6 +39,15 @@ class DataConfig:
         stem = "person_keypoints" if keypoints else "instances"
         return os.path.join(self.paths.volume_root, "labels", f"{stem}_{split}.json")
 
+    def manifest(self, spark):
+        """The gold training manifest (image_id, file_name, split, counts).
+
+        Built by the medallion pipeline; the split assignment lives here so every
+        model trains/evaluates on the same partition. Filter by ``split`` to get
+        each set's frames.
+        """
+        return spark.table(self.paths.manifest_table.replace("`", ""))
+
 
 def load_coco(path: str) -> dict:
     """Load a COCO-format annotation file from the volume."""

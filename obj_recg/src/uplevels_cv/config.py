@@ -96,9 +96,18 @@ class Paths:
     def volume_root(self) -> str:
         return f"/Volumes/{self.catalog}/{self.schema}/{self.volume}"
 
-    def table(self, name: str) -> str:
-        """Fully-qualified, backtick-quoted table (names start with a digit)."""
-        return f"`{self.catalog}`.`{self.schema}`.`{self.table_prefix}_{name}`"
+    def table(self, layer: str, name: str) -> str:
+        """Fully-qualified, backtick-quoted medallion table.
+
+        `layer` is bronze | silver | gold. Names start with a digit (the
+        table_prefix), so they must be backtick-quoted in SQL.
+        """
+        return f"`{self.catalog}`.`{self.schema}`.`{self.table_prefix}_{layer}_{name}`"
+
+    @property
+    def manifest_table(self) -> str:
+        """Gold per-image training manifest the trainers read for splits."""
+        return self.table("gold", "training_manifest")
 
     def model_name(self, key: str) -> str:
         """UC registered-model name for a model spec key."""

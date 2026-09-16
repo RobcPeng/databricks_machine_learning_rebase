@@ -1,0 +1,9 @@
+# Local dev / test only. On Databricks these come from the serverless
+# environment spec in resources/dr_benchmark.job.yml.
+scikit-learn==1.5.2
+xgboost==2.1.3
+mlflow==3.1.0
+pandas
+numpy
+pyyaml
+pytest

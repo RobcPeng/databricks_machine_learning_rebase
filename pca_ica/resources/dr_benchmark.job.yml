@@ -1,0 +1,57 @@
+resources:
+  jobs:
+    dr_benchmark:
+      name: dimensionality-reduction-benchmark
+      # Serverless, one linear medallion pipeline:
+      #   setup -> bronze -> silver -> experiments (gold) -> leaderboard (gold)
+      tasks:
+        - task_key: setup
+          notebook_task:
+            notebook_path: ../notebooks/00_setup.py
+            base_parameters: &params
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              table_prefix: ${var.table_prefix}
+          environment_key: default
+
+        - task_key: ingest_bronze
+          depends_on:
+            - task_key: setup
+          notebook_task:
+            notebook_path: ../notebooks/01_ingest_bronze.py
+            base_parameters: *params
+          environment_key: default
+
+        - task_key: build_silver
+          depends_on:
+            - task_key: ingest_bronze
+          notebook_task:
+            notebook_path: ../notebooks/02_build_silver.py
+            base_parameters: *params
+          environment_key: default
+
+        - task_key: run_experiments
+          depends_on:
+            - task_key: build_silver
+          notebook_task:
+            notebook_path: ../notebooks/03_run_experiments.py
+            base_parameters: *params
+          environment_key: default
+
+        - task_key: leaderboard
+          depends_on:
+            - task_key: run_experiments
+          notebook_task:
+            notebook_path: ../notebooks/04_leaderboard.py
+            base_parameters: *params
+          environment_key: default
+
+      environments:
+        - environment_key: default
+          spec:
+            client: "3"
+            dependencies:
+              - scikit-learn==1.5.2
+              - xgboost==2.1.3
+              - mlflow==3.1.0
+              - matplotlib

@@ -1,0 +1,23 @@
+bundle:
+  name: dr_bench
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: UC catalog for bronze/silver/gold tables.
+    default: rpeng_upleveling
+  schema:
+    description: UC schema.
+    default: dimensionality_reduction
+  table_prefix:
+    description: Prefix applied to every table this project writes.
+    default: "00_experiment_type"
+
+targets:
+  sled:
+    default: true
+    mode: development
+    workspace:
+      profile: SLED_fe_demo
