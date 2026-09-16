@@ -73,10 +73,10 @@
     <span class="kicker">Step 1</span>
     <h2>Prerequisites</h2>
     <dl class="dl">
-      <dt>CLI profile <code>SLED_fe_demo</code></dt>
-      <dd>The deploy and run commands pass <code>-p SLED_fe_demo</code>. Configure this profile once with <code>databricks configure --profile SLED_fe_demo</code> and point it at the workspace that holds the <code>rpeng_upleveling</code> catalog.</dd>
-      <dt>Write access to <code>rpeng_upleveling</code></dt>
-      <dd>The bundle creates schemas <code>dimensionality_reduction_01_bronze</code>, <code>_02_curated</code>, and <code>_03_gold</code> in that catalog. You need <code>USE CATALOG</code>, <code>CREATE SCHEMA</code>, and <code>CREATE TABLE</code> on <code>rpeng_upleveling</code>.</dd>
+      <dt>CLI profile <code>DEFAULT</code></dt>
+      <dd>The deploy and run commands pass <code>-p DEFAULT</code>. Configure this profile once with <code>databricks configure --profile DEFAULT</code> and point it at the workspace that holds the <code>uplevel</code> catalog.</dd>
+      <dt>Write access to <code>uplevel</code></dt>
+      <dd>The bundle creates schemas <code>dimensionality_reduction_01_bronze</code>, <code>_02_curated</code>, and <code>_03_gold</code> in that catalog. You need <code>USE CATALOG</code>, <code>CREATE SCHEMA</code>, and <code>CREATE TABLE</code> on <code>uplevel</code>.</dd>
       <dt>Python package (local iteration only)</dt>
       <dd>For off-platform runs: <code>pip install -r requirements.txt</code> from the <code>pca_ica/</code> directory. The package is not required for the on-platform bundle job.</dd>
     </dl>
@@ -87,8 +87,8 @@
     <h2>Deploy the bundle and run the job</h2>
     <p>From the <code>pca_ica/</code> directory, two commands stand up the bundle and start the benchmark:</p>
     <pre><code><span class="c"># from the pca_ica/ directory · target sled</span>
-databricks bundle deploy <span class="k">-t sled</span> <span class="k">-p SLED_fe_demo</span>
-databricks bundle run dr_benchmark <span class="k">-t sled</span> <span class="k">-p SLED_fe_demo</span></code></pre>
+databricks bundle deploy <span class="k">-t sled</span> <span class="k">-p DEFAULT</span>
+databricks bundle run dr_benchmark <span class="k">-t sled</span> <span class="k">-p DEFAULT</span></code></pre>
     <p>The deploy step creates the schemas, volume, and job under the <code>sled</code> target. The run step fans the 192-cell grid out across serverless CPU workers and logs every run to MLflow as nested child runs.</p>
     <div class="note" data-od-id="dr-offplatform-note">
       <span class="note__k">Off-platform iteration</span>
@@ -333,7 +333,7 @@ pytest tests/</code></pre>
     <p>The default grid spans 4 datasets, 4 reducer configurations (none, plus PCA, ICA, and random projection each at a default component count), 2 clustering states (K-Means on or off), and 6 classifiers: 4 × 4 × 2 × 6 = 192 cells. Every cell is a nested MLflow child run under its parent dataset run.</p>
 
     <h3 style="margin-top:2rem">Leaderboard columns</h3>
-    <p>The gold leaderboard table at <code>rpeng_upleveling.dimensionality_reduction_03_gold.dr_leaderboard</code> holds one row per grid cell. No results are published here; the schema describes what the table will contain once the full run completes.</p>
+    <p>The gold leaderboard table at <code>uplevel.dimensionality_reduction_03_gold.dr_leaderboard</code> holds one row per grid cell. No results are published here; the schema describes what the table will contain once the full run completes.</p>
     <div class="table-wrap">
       <table class="tbl" data-od-id="dr-leaderboard-cols">
         <caption>Leaderboard columns (schema, not results)</caption>
@@ -369,7 +369,7 @@ pytest tests/</code></pre>
 
     <h3>Register the best pipeline</h3>
     <p>Set <code>register_best: true</code> in <code>conf/experiments.yml</code>. After the grid completes, the final task evaluates every dataset and registers the top-scoring pipeline to Unity Catalog:</p>
-    <pre><code>rpeng_upleveling.dimensionality_reduction_02_curated.dr_best_<span class="k">&lt;dataset&gt;</span></code></pre>
+    <pre><code>uplevel.dimensionality_reduction_02_curated.dr_best_<span class="k">&lt;dataset&gt;</span></code></pre>
     <p>Each registered model carries the full sklearn pipeline: preprocessor, reducer (if any), cluster featurizer (if any), and classifier. Logged artifact lineage in MLflow links the registered model back to the run that produced it.</p>
 
     <h3 style="margin-top:1.75rem">Extend the grid</h3>

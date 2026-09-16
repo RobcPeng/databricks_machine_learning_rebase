@@ -86,9 +86,9 @@
     <p>Three things to have in place before you start.</p>
     <dl class="dl">
       <dt>Databricks CLI profile</dt>
-      <dd>A profile named <code>SLED_fe_demo</code> targeting <code>adb-3438839487639471.11.azuredatabricks.net</code>. If you already use a different profile name, pass it to <code>-p</code> instead.</dd>
+      <dd>A profile named <code>DEFAULT</code> pointed at your Databricks workspace. Configure it once with <code>databricks configure --profile DEFAULT</code>. If you already use a different profile name, pass it to <code>-p</code> instead.</dd>
       <dt>Catalog write access</dt>
-      <dd>Write permissions on the <code>rpeng_upleveling</code> catalog: CREATE SCHEMA and WRITE VOLUME at minimum.</dd>
+      <dd>Write permissions on the <code>uplevel</code> catalog: CREATE SCHEMA and WRITE VOLUME at minimum.</dd>
       <dt>uv</dt>
       <dd>The <code>uv</code> package manager, installed locally. The bundle uses it to manage the Python environments for each job task.</dd>
     </dl>
@@ -98,9 +98,9 @@
     <span class="kicker">Step 2</span>
     <h2>Deploy the bundle</h2>
 <pre data-od-id="deploy-cmd"><code><span class="c"># from the obj_recg/ directory · target dev (also prod)</span>
-databricks bundle validate <span class="k">-t</span> dev <span class="k">-p</span> SLED_fe_demo
-databricks bundle deploy   <span class="k">-t</span> dev <span class="k">-p</span> SLED_fe_demo   <span class="c"># schema + volume + pipeline + job</span></code></pre>
-    <p style="margin-top:1.25rem"><code>deploy</code> stands up four schemas (<code>seeing_models_00_landing</code>, <code>01_bronze</code>, <code>02_silver</code>, <code>03_gold</code>) in the <code>rpeng_upleveling</code> catalog, a managed <code>cv_data</code> volume for raw frames and labels, a serverless Lakeflow Declarative Pipeline that runs the medallion flow, and the <code>train_and_compare</code> job that runs one task per model family.</p>
+databricks bundle validate <span class="k">-t</span> dev <span class="k">-p</span> DEFAULT
+databricks bundle deploy   <span class="k">-t</span> dev <span class="k">-p</span> DEFAULT   <span class="c"># schema + volume + pipeline + job</span></code></pre>
+    <p style="margin-top:1.25rem"><code>deploy</code> stands up four schemas (<code>seeing_models_00_landing</code>, <code>01_bronze</code>, <code>02_silver</code>, <code>03_gold</code>) in the <code>uplevel</code> catalog, a managed <code>cv_data</code> volume for raw frames and labels, a serverless Lakeflow Declarative Pipeline that runs the medallion flow, and the <code>train_and_compare</code> job that runs one task per model family.</p>
   </section>
 
   <section class="section wrap" id="step-3" data-od-id="step-3-stage-data">
@@ -109,7 +109,7 @@ databricks bundle deploy   <span class="k">-t</span> dev <span class="k">-p</spa
     <p>The bundle does not ship training data. Before running the pipeline, stage labeled COCO video frames and game-result CSVs into the managed volume.</p>
     <div class="table-wrap" style="margin-top:1.25rem">
       <table class="tbl" data-od-id="volume-layout">
-        <caption>Volume layout · /Volumes/rpeng_upleveling/seeing_models_00_landing/cv_data/</caption>
+        <caption>Volume layout · /Volumes/uplevel/seeing_models_00_landing/cv_data/</caption>
         <thead><tr><th>Path</th><th>Holds</th></tr></thead>
         <tbody>
           <tr>
@@ -242,7 +242,7 @@ databricks bundle deploy   <span class="k">-t</span> dev <span class="k">-p</spa
   <section class="section wrap" id="step-6" data-od-id="step-6-run">
     <span class="kicker">Step 6</span>
     <h2>Run the job</h2>
-<pre data-od-id="run-cmd"><code>databricks bundle run train_and_compare <span class="k">-t</span> dev <span class="k">-p</span> SLED_fe_demo</code></pre>
+<pre data-od-id="run-cmd"><code>databricks bundle run train_and_compare <span class="k">-t</span> dev <span class="k">-p</span> DEFAULT</code></pre>
     <p style="margin-top:1.25rem">The job launches one task per model family, each in its own isolated Python environment: <code>cv_env</code> for the core torchvision and Ultralytics models, <code>mmpose_env</code> for RTMPose, <code>mediapipe_env</code> for BlazePose, and <code>teamperf_env</code> for the XGBoost team-performance layer.</p>
     <p>All tasks run on serverless GPU. The default accelerator is A10; the bundle falls back to classic T4 or A100 clusters when the serverless GPU quota is not available.</p>
     <p>The <code>sport</code> parameter defaults to <code>golf</code>. To benchmark a different sport, append <code>--params sport=basketball</code> (or whichever sport you staged data for) to the run command.</p>
@@ -252,7 +252,7 @@ databricks bundle deploy   <span class="k">-t</span> dev <span class="k">-p</spa
   <section class="section wrap" id="step-7" data-od-id="step-7-leaderboard">
     <span class="kicker">Step 7</span>
     <h2>Read the leaderboard</h2>
-    <p>The training job writes to <code>rpeng_upleveling.seeing_models_03_gold.model_comparison</code>, one row per model per sport. The benchmarks have not been run yet. The table below shows the columns it will contain once they are.</p>
+    <p>The training job writes to <code>uplevel.seeing_models_03_gold.model_comparison</code>, one row per model per sport. The benchmarks have not been run yet. The table below shows the columns it will contain once they are.</p>
     <div class="table-wrap" style="margin-top:1.25rem">
       <table class="tbl" data-od-id="leaderboard-columns">
         <caption>model_comparison · column reference (schema only; no data until you run the job)</caption>
@@ -272,13 +272,13 @@ databricks bundle deploy   <span class="k">-t</span> dev <span class="k">-p</spa
         </tbody>
       </table>
     </div>
-    <p style="margin-top:1.25rem">Team-performance predictions land in <code>rpeng_upleveling.seeing_models_03_gold.team_predictions</code>, one row per game per sport, with predicted values for each of the seven targets.</p>
+    <p style="margin-top:1.25rem">Team-performance predictions land in <code>uplevel.seeing_models_03_gold.team_predictions</code>, one row per game per sport, with predicted values for each of the seven targets.</p>
   </section>
 
   <section class="section wrap" id="step-8" data-od-id="step-8-extend">
     <span class="kicker">Step 8</span>
     <h2>Register and extend</h2>
-    <p>After training, any model that meets the quality threshold is registered to Unity Catalog and its <code>@prod</code> alias moves to the new version automatically. Inspect the registry at <code>rpeng_upleveling.cv_models.&lt;model_key&gt;</code>.</p>
+    <p>After training, any model that meets the quality threshold is registered to Unity Catalog and its <code>@prod</code> alias moves to the new version automatically. Inspect the registry at <code>uplevel.cv_models.&lt;model_key&gt;</code>.</p>
     <p>The bundle has three extension points. Each is a one-line registry append: the dispatch, evaluation, and leaderboard code pick up the new entry on the next job run with no further changes.</p>
     <div class="grid grid-3" style="margin-top:1.5rem">
       <div class="card" data-od-id="extend-model">
