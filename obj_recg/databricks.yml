@@ -1,0 +1,68 @@
+# uplevels_cv — Databricks Asset Bundle
+#
+# A benchmark harness for comparing computer-vision model families on a sports
+# object-detection + pose-estimation task: locate the athlete/equipment (boxes)
+# and trace the limb lines of a golf swing (keypoints -> skeleton edges).
+#
+# Model families compared (see src/uplevels_cv/config.py):
+#   - yolo   : Ultralytics YOLO11 (one-stage; detect + pose)
+#   - resnet : torchvision R-CNN with a ResNet-50 FPN backbone (two-stage;
+#              Faster R-CNN for detection, Keypoint R-CNN for limb keypoints)
+#   - cnn    : lightweight CNN baseline (SSDlite / RetinaNet)
+#
+# Training runs on serverless GPU compute (AI Runtime). See README.md.
+
+bundle:
+  name: uplevels_cv
+
+variables:
+  catalog:
+    description: Unity Catalog holding the schema, volume, and registered models.
+    default: rpeng_upleveling
+  schema:
+    description: Schema for this project's data, models, and comparison tables.
+    default: object_and_vision
+  table_prefix:
+    description: >-
+      Prefix for all tables this bundle creates. The leading number controls
+      sort order in the catalog explorer (e.g. 00_seeing_models_comparison).
+    default: 00_seeing_models
+  volume:
+    description: Managed volume for images, labels, and run artifacts.
+    default: cv_data
+  experiment_root:
+    description: Workspace folder for the MLflow experiments (must be writable).
+    default: /Users/rob.peng@databricks.com/uplevels_cv
+  serverless_env_version:
+    description: Serverless environment version (v5 = Runtime 17.3, GPU-capable).
+    default: "5"
+  gpu_type:
+    description: Serverless GPU accelerator requested via the @distributed API.
+    default: A10
+
+include:
+  - resources/*.yml
+
+# Ship the fixtures (skeleton spec, tiny sample annotations) with the bundle.
+# Data/JSON files are excluded from sync by default; this opts them back in.
+sync:
+  include:
+    - fixtures/**
+
+targets:
+  # Personal iteration target. `mode: development` prefixes resource names with
+  # [dev_rob_peng] and pauses schedules. This is the default target.
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://adb-3438839487639471.11.azuredatabricks.net
+
+  # Shared/scheduled target. Deploy with: databricks bundle deploy -t prod -p SLED_fe_demo
+  prod:
+    mode: production
+    workspace:
+      host: https://adb-3438839487639471.11.azuredatabricks.net
+      root_path: /Workspace/Users/rob.peng@databricks.com/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      user_name: rob.peng@databricks.com

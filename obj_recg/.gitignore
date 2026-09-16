@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Databricks bundle state
+.databricks/
+
+# Local model + data artifacts (these live in the UC Volume, not git)
+*.pt
+*.pth
+*.onnx
+runs/
+datasets/
+wandb/
+
+# OS
+.DS_Store

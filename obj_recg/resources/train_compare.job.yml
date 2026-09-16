@@ -1,0 +1,121 @@
+# Multi-task benchmark job:
+#
+#   setup_data ─┬─> train_yolo   ─┐
+#               ├─> train_resnet ─┼─> compare
+#               └─> train_cnn    ─┘
+#
+# All tasks run as serverless notebook tasks (env v5). The actual GPU training
+# happens inside each notebook via the serverless-GPU @distributed API, so no
+# cluster is defined here. To force a specific accelerator, change var.gpu_type
+# (A10 | H100). A classic-GPU-cluster fallback is shown commented at the bottom.
+resources:
+  jobs:
+    train_and_compare:
+      name: "[${bundle.target}] uplevels_cv — train & compare vision models"
+      tags:
+        project: uplevels_cv
+        domain: sports-pose
+
+      # Shared serverless environment for every task. torch/torchvision are
+      # provided by the AI Runtime GPU environment on the @distributed workers,
+      # so they are intentionally NOT pinned here (avoids a CPU-torch clash).
+      environments:
+        - environment_key: cv_env
+          spec:
+            client: "${var.serverless_env_version}"
+            dependencies:
+              - ultralytics>=8.3
+              - pycocotools>=2.0.7
+              - opencv-python-headless>=4.10
+              - mlflow>=3.1.0
+
+      tasks:
+        - task_key: setup_data
+          notebook_task:
+            notebook_path: ../notebooks/00_setup_data.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              volume: ${var.volume}
+          environment_key: cv_env
+
+        - task_key: train_yolo
+          depends_on:
+            - task_key: setup_data
+          notebook_task:
+            notebook_path: ../notebooks/01_train_yolo.py
+            base_parameters:
+              model_family: yolo
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              volume: ${var.volume}
+              table_prefix: ${var.table_prefix}
+              experiment_root: ${var.experiment_root}
+              gpu_type: ${var.gpu_type}
+          environment_key: cv_env
+
+        - task_key: train_resnet
+          depends_on:
+            - task_key: setup_data
+          notebook_task:
+            notebook_path: ../notebooks/02_train_resnet.py
+            base_parameters:
+              model_family: resnet
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              volume: ${var.volume}
+              table_prefix: ${var.table_prefix}
+              experiment_root: ${var.experiment_root}
+              gpu_type: ${var.gpu_type}
+          environment_key: cv_env
+
+        - task_key: train_cnn
+          depends_on:
+            - task_key: setup_data
+          notebook_task:
+            notebook_path: ../notebooks/03_train_cnn_baseline.py
+            base_parameters:
+              model_family: cnn
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              volume: ${var.volume}
+              table_prefix: ${var.table_prefix}
+              experiment_root: ${var.experiment_root}
+              gpu_type: ${var.gpu_type}
+          environment_key: cv_env
+
+        - task_key: compare
+          depends_on:
+            - task_key: train_yolo
+            - task_key: train_resnet
+            - task_key: train_cnn
+          notebook_task:
+            notebook_path: ../notebooks/04_compare_models.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              volume: ${var.volume}
+              table_prefix: ${var.table_prefix}
+              experiment_root: ${var.experiment_root}
+          environment_key: cv_env
+
+      queue:
+        enabled: true
+
+# ---------------------------------------------------------------------------
+# CLASSIC GPU CLUSTER FALLBACK (Azure)
+# ---------------------------------------------------------------------------
+# If serverless GPU / @distributed is not enabled on the workspace, delete the
+# `environment_key: cv_env` line from each training task and attach a job
+# cluster instead. Azure GPU node types (verify availability in your region):
+#   Standard_NC4as_T4_v3   -> 1x T4    (cheapest)
+#   Standard_NC24ads_A100_v4 -> 1x A100 (fast)
+#
+#   job_clusters:
+#     - job_cluster_key: gpu
+#       new_cluster:
+#         spark_version: 17.3.x-gpu-ml-scala2.13   # verify current GPU ML runtime
+#         node_type_id: Standard_NC4as_T4_v3
+#         num_workers: 0                            # single-node
+#         data_security_mode: SINGLE_USER
+#   # then on each training task: `job_cluster_key: gpu` instead of environment_key

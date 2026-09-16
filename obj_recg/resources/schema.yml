@@ -1,0 +1,11 @@
+# Unity Catalog schema for the benchmark. The catalog (var.catalog) must already
+# exist; DABs manage the schema and everything below it.
+resources:
+  schemas:
+    object_and_vision:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}
+      comment: >-
+        uplevels_cv benchmark: object-detection + pose-estimation model
+        comparison (YOLO vs ResNet R-CNN vs CNN baseline). Tables are prefixed
+        with ${var.table_prefix}_ so the leading number controls sort order.

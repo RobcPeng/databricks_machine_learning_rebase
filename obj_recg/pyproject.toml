@@ -1,0 +1,39 @@
+[project]
+name = "uplevels-cv"
+version = "0.1.0"
+description = "Benchmark harness comparing YOLO / ResNet R-CNN / CNN model families on sports object-detection + pose estimation (golf-swing limb lines)."
+requires-python = ">=3.12,<3.13"  # match serverless env v5 (Python 3.12.3)
+dependencies = [
+    "mlflow>=3.1.0",
+    "numpy>=1.26",
+    "pillow>=10.0",
+    "pyyaml>=6.0",
+]
+
+# Heavy, platform-specific training libs. Installed on the serverless GPU runtime
+# at job time (see resources/train_compare.job.yml and the notebooks); pulled
+# locally only when you want to run training on your own machine.
+[project.optional-dependencies]
+train = [
+    "torch>=2.4",
+    "torchvision>=0.19",
+    "ultralytics>=8.3",       # YOLO11
+    "pycocotools>=2.0.7",     # COCO mAP / OKS evaluation
+    "opencv-python-headless>=4.10",
+]
+dev = [
+    "pytest>=8.0",
+    "databricks-connect==18.0.*",  # matches serverless env v5; do NOT also install pyspark
+    "ruff>=0.6",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/uplevels_cv"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"

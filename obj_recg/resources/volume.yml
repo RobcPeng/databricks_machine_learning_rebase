@@ -1,0 +1,14 @@
+# Managed volume for images, COCO-format label files, and per-run artifacts.
+# Referencing ${resources.schemas...name} (not ${var.schema}) makes DABs create
+# the schema before the volume — avoids a parallel-creation race.
+resources:
+  volumes:
+    cv_data:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.object_and_vision.name}
+      name: ${var.volume}
+      volume_type: MANAGED
+      comment: >-
+        Frames, COCO keypoint/bbox annotations, and training artifacts for the
+        uplevels_cv benchmark. Layout under /Volumes/<cat>/<schema>/<vol>/:
+        raw/ images/ labels/ splits/ artifacts/ predictions/.
