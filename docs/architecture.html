@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture · benchmark harnesses on Databricks</title>
+<meta name="description" content="System architecture, data-flow diagrams, ERDs, and full schema breakdowns for both Databricks Asset Bundles.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body data-od-id="page-architecture">
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav" data-od-id="nav">
+  <div class="nav__inner">
+    <a class="brand" href="index.html">built with Databricks</a>
+    <button class="nav__toggle" aria-expanded="false" aria-controls="navlinks">Menu</button>
+    <nav class="nav__links" id="navlinks" aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <div class="nav__group">
+        <a href="architecture.html" class="nav__parent" aria-current="page">Architecture</a>
+        <div class="nav__menu">
+          <a href="arch-cv.html">Computer vision</a>
+          <a href="arch-dr.html">Dimensionality reduction</a>
+        </div>
+      </div>
+      <div class="nav__group">
+        <a href="repositories.html" class="nav__parent">Repositories</a>
+        <div class="nav__menu">
+          <a href="repo-cv.html">Computer vision</a>
+          <a href="repo-dr.html">Dimensionality reduction</a>
+        </div>
+      </div>
+      <a href="kanban.html">Kanban</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero wrap" data-od-id="hero">
+    <span class="kicker">Architecture</span>
+    <h1>The wiring, drawn out<span class="dot">.</span></h1>
+    <p class="lead">One page per bundle: the system topology, the medallion data flow, the entity-relationship model, and the schema and table reference. Diagrams and tables, not prose.</p>
+  </section>
+
+  <section class="section wrap" data-od-id="arch-list">
+    <div class="grid grid-2">
+      <a class="card card--link" href="arch-cv.html" data-od-id="arch-card-cv">
+        <div class="card__meta">obj_recg · uplevels_cv</div>
+        <h3>Computer vision architecture</h3>
+        <p class="muted small">System topology · four-layer medallion data flow · ERD across images, keypoints, games, and the gold tables · model-dispatch and registry components · environments and metrics.</p>
+        <span class="card__more">Open the breakdown →</span>
+      </a>
+      <a class="card card--link" href="arch-dr.html" data-od-id="arch-card-dr">
+        <div class="card__meta">pca_ica · dr_bench</div>
+        <h3>Dimensionality reduction architecture</h3>
+        <p class="muted small">System topology · three-layer medallion data flow · ERD across landing, cleansed, and the leaderboard tables · reduce-cluster-model pipeline · grid cardinality · MLflow and Unity Catalog.</p>
+        <span class="card__more">Open the breakdown →</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="section section--tight wrap" data-od-id="what-inside">
+    <span class="kicker">What each page contains</span>
+    <h2>Same four views, both bundles</h2>
+    <div class="grid grid-4" style="margin-top:1.25rem">
+      <div class="card"><div class="card__meta">01</div><h4>System diagram</h4><p class="muted small">Bundle, resources, compute, MLflow, and Unity Catalog as a layered topology.</p></div>
+      <div class="card"><div class="card__meta">02</div><h4>Data flow</h4><p class="muted small">The medallion stages with the tables produced at each layer.</p></div>
+      <div class="card"><div class="card__meta">03</div><h4>ERD</h4><p class="muted small">Entities, columns, primary and foreign keys, and the relationships between them.</p></div>
+      <div class="card"><div class="card__meta">04</div><h4>Schema reference</h4><p class="muted small">Every schema and table, with grain and column-level detail.</p></div>
+    </div>
+    <p class="muted small" style="margin-top:1.5rem">For the step-by-step deploy-and-run path, see the <a href="repositories.html">repository walkthroughs</a>.</p>
+  </section>
+
+</main>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

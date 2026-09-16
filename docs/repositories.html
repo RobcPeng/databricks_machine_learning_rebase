@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Repositories · benchmark harnesses on Databricks</title>
+<meta name="description" content="The two Databricks Asset Bundles in this project: a computer-vision repo and a dimensionality-reduction repo, each with a zero-to-hero walkthrough.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body data-od-id="page-repositories">
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav" data-od-id="nav">
+  <div class="nav__inner">
+    <a class="brand" href="index.html">built with Databricks</a>
+    <button class="nav__toggle" aria-expanded="false" aria-controls="navlinks">Menu</button>
+    <nav class="nav__links" id="navlinks" aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <div class="nav__group">
+        <a href="architecture.html" class="nav__parent">Architecture</a>
+        <div class="nav__menu">
+          <a href="arch-cv.html">Computer vision</a>
+          <a href="arch-dr.html">Dimensionality reduction</a>
+        </div>
+      </div>
+      <div class="nav__group">
+        <a href="repositories.html" class="nav__parent" aria-current="page">Repositories</a>
+        <div class="nav__menu">
+          <a href="repo-cv.html">Computer vision</a>
+          <a href="repo-dr.html">Dimensionality reduction</a>
+        </div>
+      </div>
+      <a href="kanban.html">Kanban</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero wrap" data-od-id="hero">
+    <span class="kicker">Repositories</span>
+    <h1>Two bundles, two walkthroughs<span class="dot">.</span></h1>
+    <p class="lead">Each folder in the repository is a self-contained Databricks Asset Bundle with its own <code>databricks.yml</code>, package, and job. Pick one and follow it from an empty catalog to a working leaderboard. Both share the catalog <code>rpeng_upleveling</code> and the same deploy, run, read rhythm.</p>
+  </section>
+
+  <section class="section wrap" data-od-id="repo-list">
+    <div class="grid grid-2">
+      <a class="card card--link" href="repo-cv.html" data-od-id="repo-card-cv">
+        <div class="card__meta">obj_recg · uplevels_cv · serverless GPU</div>
+        <h3>Computer vision</h3>
+        <p>Object detection, 2D and 3D pose on sports video, then team and athlete performance from the CV features. Benchmarks six model families across nine specs, parameterized by sport.</p>
+        <p class="muted small">Walks through: deploy · stage data · medallion pipeline · the model zoo · run the job · read the leaderboard · register and extend.</p>
+        <span class="card__more">Open the walkthrough →</span>
+      </a>
+      <a class="card card--link" href="repo-dr.html" data-od-id="repo-card-dr">
+        <div class="card__meta">pca_ica · dr_bench · serverless CPU + local</div>
+        <h3>Dimensionality reduction</h3>
+        <p>Binary prediction of above-median outcomes across four public datasets, measuring whether PCA, ICA, random projection, and clustering help six classic classifiers. Runs on Databricks and off-platform.</p>
+        <p class="muted small">Walks through: deploy · land the data · the reduce-cluster-model pipeline · reducers · classifiers · the 192-cell grid · reading outcomes from the factors.</p>
+        <span class="card__more">Open the walkthrough →</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="section section--tight wrap" data-od-id="cross-links">
+    <span class="kicker">Reference &amp; status</span>
+    <h2>Alongside the walkthroughs</h2>
+    <div class="grid grid-2" style="margin-top:1.25rem">
+      <a class="card card--link" href="architecture.html"><h3>Architecture</h3><p class="muted">System diagrams, data-flow diagrams, ERDs, and the full schema breakdown for both bundles.</p><span class="card__more">Open architecture →</span></a>
+      <a class="card card--link" href="kanban.html"><h3>Kanban</h3><p class="muted">What is shipped, what is next, and what remains, drawn from the source TODOs.</p><span class="card__more">See the board →</span></a>
+    </div>
+  </section>
+
+</main>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

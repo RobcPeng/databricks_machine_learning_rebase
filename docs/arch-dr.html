@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dimensionality reduction architecture · benchmark harnesses on Databricks</title>
+<meta name="description" content="System topology, medallion data flow, ERD, and the reduce-cluster-model pipeline for the pca_ica dimensionality-reduction Asset Bundle.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body data-od-id="page-arch-dr">
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav" data-od-id="nav">
+  <div class="nav__inner">
+    <a class="brand" href="index.html">built with Databricks</a>
+    <button class="nav__toggle" aria-expanded="false" aria-controls="navlinks">Menu</button>
+    <nav class="nav__links" id="navlinks" aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <div class="nav__group">
+        <a href="architecture.html" class="nav__parent">Architecture</a>
+        <div class="nav__menu">
+          <a href="arch-cv.html">Computer vision</a>
+          <a href="arch-dr.html" aria-current="page">Dimensionality reduction</a>
+        </div>
+      </div>
+      <div class="nav__group">
+        <a href="repositories.html" class="nav__parent">Repositories</a>
+        <div class="nav__menu">
+          <a href="repo-cv.html">Computer vision</a>
+          <a href="repo-dr.html">Dimensionality reduction</a>
+        </div>
+      </div>
+      <a href="kanban.html">Kanban</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero wrap" data-od-id="hero">
+    <span class="kicker">Dimensionality reduction architecture · dr_bench</span>
+    <h1>dr_bench, wired end to end<span class="dot">.</span></h1>
+    <p class="lead">Bundle topology, three-layer medallion data flow, entity model, and the reduce-cluster-model grid for the pca_ica Asset Bundle.</p>
+    <div class="statrow" style="margin-top:1.75rem">
+      <div class="stat">
+        <div class="stat__num">3</div>
+        <div class="stat__label">schemas</div>
+      </div>
+      <div class="stat">
+        <div class="stat__num">4</div>
+        <div class="stat__label">datasets</div>
+      </div>
+      <div class="stat">
+        <div class="stat__num">4</div>
+        <div class="stat__label">reducers</div>
+      </div>
+      <div class="stat">
+        <div class="stat__num">192<span class="u">cells</span></div>
+        <div class="stat__label">grid</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section wrap" data-od-id="dr-topology">
+    <h2>System topology</h2>
+
+    <div class="layers" style="margin-top:1.25rem">
+      <div class="layer">
+        <div class="layer__label">Source</div>
+        <div class="node node--ink"><span class="lbl">bundle</span>databricks.yml · dr_bench</div>
+      </div>
+      <div class="layer">
+        <div class="layer__label">Deployed resources</div>
+        <div class="node"><span class="lbl">Unity Catalog</span>schemas 00_landing / 01_cleansed / 02_curated</div>
+        <div class="node"><span class="lbl">job</span>dr_benchmark</div>
+      </div>
+      <div class="layer">
+        <div class="layer__label">Job tasks</div>
+        <div class="node"><span class="lbl">task</span>setup</div>
+        <div class="node"><span class="lbl">task</span>ingest_bronze</div>
+        <div class="node"><span class="lbl">task</span>build_silver</div>
+        <div class="node node--accent"><span class="lbl">key task</span>run_experiments</div>
+        <div class="node"><span class="lbl">task</span>leaderboard</div>
+      </div>
+      <div class="layer">
+        <div class="layer__label">Execution</div>
+        <div class="node">
+          <span class="lbl">compute</span>
+          serverless CPU (client 3)
+          <p class="small muted" style="margin:5px 0 0">scikit-learn 1.5.2 · xgboost 2.1.3<br>mlflow 3.1.0 · pyreadstat</p>
+        </div>
+        <div class="node"><span class="lbl">off-platform</span>public URLs + pytest</div>
+      </div>
+      <div class="layer">
+        <div class="layer__label">Tracking</div>
+        <div class="node"><span class="lbl">MLflow</span>parent run grid_sweep + one nested run per cell</div>
+      </div>
+      <div class="layer">
+        <div class="layer__label">Governance</div>
+        <div class="node node--ink"><span class="lbl">Unity Catalog</span>dr_best_&lt;dataset&gt; when register_best</div>
+      </div>
+    </div>
+
+    <div class="table-wrap" style="margin-top:1.75rem">
+      <table class="tbl">
+        <caption>Component reference</caption>
+        <thead>
+          <tr><th>Component</th><th>Value</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono">catalog</td>
+            <td>rpeng_upleveling</td>
+          </tr>
+          <tr>
+            <td class="mono">schemas</td>
+            <td>dimensionality_reduction_00_landing · dimensionality_reduction_01_cleansed · dimensionality_reduction_02_curated</td>
+          </tr>
+          <tr>
+            <td class="mono">job display name</td>
+            <td>dimensionality-reduction-benchmark</td>
+          </tr>
+          <tr>
+            <td class="mono">target</td>
+            <td>sled</td>
+          </tr>
+          <tr>
+            <td class="mono">volume</td>
+            <td>none; sources land directly to Delta tables</td>
+          </tr>
+          <tr>
+            <td class="mono">registered model</td>
+            <td><code>rpeng_upleveling.dimensionality_reduction_02_curated.dr_best_&lt;dataset&gt;</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section wrap" data-od-id="dr-dataflow">
+    <h2>Data flow (medallion)</h2>
+
+    <div class="pipe" style="margin-top:1.25rem">
+      <div class="pipe__stage">
+        <span class="lbl">00 landing</span>
+        <h4>dimensionality_reduction_00_landing</h4>
+        <p>Download each public source; write verbatim rows to a per-dataset Delta table (nscg_2023, scorecard_2026, acs_co_2024, pisa_2022).</p>
+      </div>
+      <span class="pipe__arrow" aria-hidden="true">&rarr;</span>
+      <div class="pipe__stage">
+        <span class="lbl">01 cleansed</span>
+        <h4>dimensionality_reduction_01_cleansed</h4>
+        <p>Apply row filters; derive binary label via median split on the target column; retain the spec feature set. One table per dataset.</p>
+      </div>
+      <span class="pipe__arrow" aria-hidden="true">&rarr;</span>
+      <div class="pipe__stage">
+        <span class="lbl">02 curated</span>
+        <h4>dimensionality_reduction_02_curated</h4>
+        <p>Write <code>leaderboard</code> (one row per grid cell) and <code>model_comparison</code> (best <code>test_roc_auc</code> per dataset, model, reducer).</p>
+      </div>
+    </div>
+
+    <div class="note note--warn" style="margin-top:1.25rem">
+      <span class="note__k">Known issue</span>
+      <p>The <code>scorecard_2026</code> source currently fails to land: serverless egress cannot reach its download host. The bronze step skips any failed source and continues with the remaining datasets. Tracked on the <a href="kanban.html">kanban board</a>.</p>
+    </div>
+  </section>
+
+  <section class="section wrap" data-od-id="dr-erd">
+    <h2>Entity-relationship model</h2>
+
+    <div class="erd" style="margin-top:1.25rem">
+
+      <div class="entity">
+        <div class="entity__head"><span>landing.&lt;dataset&gt;</span><span class="schema">00_landing</span></div>
+        <div class="entity__row"><span class="col">source_column &hellip;</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">ingested_at</span><span class="ty">timestamp</span></div>
+        <div class="entity__row"><span class="col muted small">verbatim; one table per dataset</span><span class="ty"></span></div>
+      </div>
+
+      <div class="entity">
+        <div class="entity__head"><span>cleansed.&lt;dataset&gt;</span><span class="schema">01_cleansed</span></div>
+        <div class="entity__row"><span class="col">numeric_features</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">categorical_features</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">label <span class="chip chip--accent">target</span></span><span class="ty">int</span></div>
+      </div>
+
+      <div class="entity">
+        <div class="entity__head"><span>leaderboard</span><span class="schema">02_curated</span></div>
+        <div class="entity__row"><span class="col">dataset <span class="key key--pk">CK</span></span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">reducer <span class="key key--pk">CK</span></span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">n_components <span class="key key--pk">CK</span></span><span class="ty">int</span></div>
+        <div class="entity__row"><span class="col">clustering <span class="key key--pk">CK</span></span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">model <span class="key key--pk">CK</span></span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">cv_accuracy</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">cv_f1</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">cv_roc_auc</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">test_accuracy</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">test_f1</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">test_roc_auc</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">cv_seconds</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">pca_explained_var</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col muted small">grain: one row per grid cell</span><span class="ty"></span></div>
+      </div>
+
+      <div class="entity">
+        <div class="entity__head"><span>model_comparison</span><span class="schema">02_curated</span></div>
+        <div class="entity__row"><span class="col">dataset <span class="key key--pk">CK</span></span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">model <span class="key key--pk">CK</span></span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">reducer <span class="key key--pk">CK</span></span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">best_test_roc_auc</span><span class="ty">double</span></div>
+      </div>
+
+      <div class="entity">
+        <div class="entity__head"><span>dr_best_&lt;dataset&gt;</span><span class="schema">02_curated · registered model</span></div>
+        <div class="entity__row"><span class="col muted small">Registered MLflow pipeline model; not a Delta table. Created only when <code>register_best</code> is <code>true</code>.</span><span class="ty"></span></div>
+      </div>
+
+    </div>
+
+    <div class="table-wrap" style="margin-top:1.5rem">
+      <table class="tbl">
+        <caption>Relationships</caption>
+        <thead>
+          <tr><th>From</th><th>To</th><th>Cardinality</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono">cleansed.&lt;dataset&gt;</td>
+            <td class="mono">landing.&lt;dataset&gt;</td>
+            <td>derived from; one-to-one, filtered rows</td>
+          </tr>
+          <tr>
+            <td class="mono">leaderboard.dataset</td>
+            <td class="mono">cleansed.&lt;dataset&gt;</td>
+            <td>many rows per dataset</td>
+          </tr>
+          <tr>
+            <td class="mono">model_comparison</td>
+            <td class="mono">leaderboard</td>
+            <td>aggregates; group by (dataset, model, reducer), max test_roc_auc</td>
+          </tr>
+          <tr>
+            <td class="mono">leaderboard.reducer</td>
+            <td>REDUCERS</td>
+            <td>value in {none, pca, ica, random_projection}</td>
+          </tr>
+          <tr>
+            <td class="mono">leaderboard.model</td>
+            <td>MODELS</td>
+            <td>value in {logistic_regression, svm_rbf, knn, random_forest, xgboost, mlp} (default sweep)</td>
+          </tr>
+          <tr>
+            <td class="mono">leaderboard.clustering</td>
+            <td>CLUSTERINGS</td>
+            <td>value in {none, kmeans, gmm}; gmm off by default</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section wrap" data-od-id="dr-pipeline">
+    <h2>The per-cell pipeline</h2>
+    <p>Every grid cell runs one sklearn <code>Pipeline</code> with four stages in sequence.</p>
+
+    <div class="pipe" style="margin-top:1.25rem">
+      <div class="pipe__stage">
+        <span class="lbl">A preprocess</span>
+        <h4>ColumnTransformer</h4>
+        <p>Numeric: SimpleImputer (median) then StandardScaler. Categorical: SimpleImputer (most_frequent) then OneHotEncoder (handle_unknown=ignore, max_categories=50).</p>
+      </div>
+      <span class="pipe__arrow" aria-hidden="true">&rarr;</span>
+      <div class="pipe__stage">
+        <span class="lbl">B reduce</span>
+        <h4>DimReducer</h4>
+        <p>Wraps PCA, FastICA, or GaussianRandomProjection; passthrough when reducer=none. Default n_components=10.</p>
+      </div>
+      <span class="pipe__arrow" aria-hidden="true">&rarr;</span>
+      <div class="pipe__stage">
+        <span class="lbl">C cluster features</span>
+        <h4>ClusterFeaturizer</h4>
+        <p>KMeans k=4 or GMM appends one-hot cluster-membership columns. Passthrough when clustering=none.</p>
+      </div>
+      <span class="pipe__arrow" aria-hidden="true">&rarr;</span>
+      <div class="pipe__stage">
+        <span class="lbl">D model</span>
+        <h4>Classifier</h4>
+        <p>One of the registered classifiers: logistic_regression, svm_rbf, knn, random_forest, xgboost, or mlp (default sweep).</p>
+      </div>
+    </div>
+
+    <div class="table-wrap" style="margin-top:1.5rem">
+      <table class="tbl">
+        <caption>Registry axes</caption>
+        <thead>
+          <tr><th>Axis</th><th>Values</th><th>Source file</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Datasets</td>
+            <td>
+              <span class="chip">nscg_2023</span>
+              <span class="chip">scorecard_2026</span>
+              <span class="chip">acs_co_2024</span>
+              <span class="chip">pisa_2022</span>
+            </td>
+            <td class="mono">datasets.py</td>
+          </tr>
+          <tr>
+            <td>Reducers</td>
+            <td>
+              <span class="chip">none</span>
+              <span class="chip">pca</span>
+              <span class="chip">ica</span>
+              <span class="chip">random_projection</span>
+            </td>
+            <td class="mono">reducers.py</td>
+          </tr>
+          <tr>
+            <td>Clustering</td>
+            <td>
+              <span class="chip">none</span>
+              <span class="chip">kmeans</span>
+              <span class="chip">gmm</span> <span class="muted small">(off by default)</span>
+            </td>
+            <td class="mono">clustering.py</td>
+          </tr>
+          <tr>
+            <td>Models</td>
+            <td>
+              <span class="chip">logistic_regression</span>
+              <span class="chip">svm_rbf</span>
+              <span class="chip">svm_linear</span> <span class="muted small">(off)</span>
+              <span class="chip">knn</span>
+              <span class="chip">random_forest</span>
+              <span class="chip">xgboost</span>
+              <span class="chip">mlp</span>
+            </td>
+            <td class="mono">models.py</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section wrap" data-od-id="dr-grid">
+    <h2>Grid cardinality</h2>
+
+    <div class="table-wrap" style="margin-top:1.25rem">
+      <table class="tbl">
+        <thead>
+          <tr><th>Axis</th><th>Active by default</th><th>Count</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Datasets</td>
+            <td>nscg_2023, scorecard_2026, acs_co_2024, pisa_2022</td>
+            <td class="mono">4</td>
+          </tr>
+          <tr>
+            <td>Reducer settings</td>
+            <td>none, pca (k=10), ica (k=10), random_projection (k=10)</td>
+            <td class="mono">4</td>
+          </tr>
+          <tr>
+            <td>Clustering</td>
+            <td>none, kmeans</td>
+            <td class="mono">2</td>
+          </tr>
+          <tr>
+            <td>Models</td>
+            <td>logistic_regression, svm_rbf, knn, random_forest, xgboost, mlp</td>
+            <td class="mono">6</td>
+          </tr>
+          <tr>
+            <td><strong>Grid total</strong></td>
+            <td class="mono">4 &times; 4 &times; 2 &times; 6</td>
+            <td class="mono"><strong>192</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note" style="margin-top:1.25rem">
+      <span class="note__k">Default exclusions</span>
+      <p>7 models are registered; <code>svm_linear</code> is off by default. <code>gmm</code> is registered as a clustering option and off by default. Neither affects the 192-cell default sweep.</p>
+    </div>
+
+    <dl class="dl" style="margin-top:1.5rem">
+      <dt>Run name format</dt>
+      <dd><code>dataset|reducer|k{n}|clustering|model</code></dd>
+      <dt>Primary ranking metric</dt>
+      <dd><code>test_roc_auc</code></dd>
+      <dt>cv_folds</dt>
+      <dd>5</dd>
+      <dt>test_size</dt>
+      <dd>0.2</dd>
+      <dt>sample_rows</dt>
+      <dd>6000</dd>
+      <dt>MLflow structure</dt>
+      <dd>one parent run (<code>grid_sweep</code>) + one nested run per cell</dd>
+    </dl>
+  </section>
+
+  <section class="section--tight wrap center" data-od-id="dr-cta">
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a href="arch-cv.html" class="btn btn--primary">Computer vision architecture <span class="btn__arrow">→</span></a>
+      <a href="repo-dr.html" class="btn btn--ghost">Dimensionality reduction walkthrough <span class="btn__arrow">→</span></a>
+    </div>
+  </section>
+
+</main>
+<script src="assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dimensionality reduction repo · benchmark harnesses on Databricks</title>
+<meta name="description" content="Zero to hero for the pca_ica Asset Bundle: deploy, land four public datasets, run the reduce-cluster-model grid, and read how PCA, ICA, and random projection surface which actions move an outcome.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body data-od-id="page-repo-dr">
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav" data-od-id="nav">
+  <div class="nav__inner">
+    <a class="brand" href="index.html">built with Databricks</a>
+    <button class="nav__toggle" aria-expanded="false" aria-controls="navlinks">Menu</button>
+    <nav class="nav__links" id="navlinks" aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <div class="nav__group">
+        <a href="architecture.html" class="nav__parent">Architecture</a>
+        <div class="nav__menu">
+          <a href="arch-cv.html">Computer vision</a>
+          <a href="arch-dr.html">Dimensionality reduction</a>
+        </div>
+      </div>
+      <div class="nav__group">
+        <a href="repositories.html" class="nav__parent">Repositories</a>
+        <div class="nav__menu">
+          <a href="repo-cv.html">Computer vision</a>
+          <a href="repo-dr.html" aria-current="page">Dimensionality reduction</a>
+        </div>
+      </div>
+      <a href="kanban.html">Kanban</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero wrap" data-od-id="dr-hero">
+    <span class="kicker">Dimensionality reduction repo · dr_bench</span>
+    <h1>From a wide table to the few factors that matter<span class="dot">.</span></h1>
+    <p class="lead">This bundle asks whether we can predict an above-median earnings or attainment outcome for a graduate, an institution, or a student, and whether PCA, ICA, random projection, or clustering-derived features help the classic models get there. Scikit-learn on serverless CPU, with the option to iterate off-platform against public URLs for fast local feedback.</p>
+    <div class="hero__actions">
+      <a class="btn btn--primary" href="#dr-deploy">Deploy now <span class="btn__arrow" aria-hidden="true">→</span></a>
+      <a class="btn btn--ghost" href="#dr-outcomes">Reading outcomes</a>
+    </div>
+  </section>
+
+  <section class="section section--tight wrap" aria-label="At a glance" data-od-id="dr-glance">
+    <div class="statrow">
+      <div class="stat"><div class="stat__num">4</div><div class="stat__label">Public datasets</div></div>
+      <div class="stat"><div class="stat__num">6</div><div class="stat__label">Classifiers in the sweep</div></div>
+      <div class="stat"><div class="stat__num">4</div><div class="stat__label">Reducers (inc. control)</div></div>
+      <div class="stat"><div class="stat__num">192<span class="u">cells</span></div><div class="stat__label">Default grid</div></div>
+    </div>
+  </section>
+
+  <section class="section wrap" data-od-id="dr-what">
+    <span class="kicker">Step 0</span>
+    <h2>What it is: binary classification</h2>
+    <p class="lead">Every target in this bundle is a median split of a continuous outcome. Label 1 means above the median; label 0 means at or below it. Because the split is at the median, classes are exactly balanced at 50/50.</p>
+    <p>A balanced split means accuracy, F1, and ROC-AUC are all honest: no class is over-represented and no metric is artificially inflated by an imbalanced prior. ROC-AUC is the primary ranking metric, because it measures discrimination across all classification thresholds without assuming a fixed operating point. The leaderboard sorts by test ROC-AUC descending.</p>
+    <div class="note" data-od-id="dr-median-note">
+      <span class="note__k">Why median?</span>
+      <p>Continuous targets like average earnings or occupational status scores vary enormously across datasets and populations. Splitting at the median gives a common question across all four sources: is this graduate, institution, county, or student above the middle of its own reference distribution? The trade is losing the magnitude of the difference; the gain is comparability across sources with different scales and units.</p>
+    </div>
+  </section>
+
+  <section class="section wrap" data-od-id="dr-prereqs">
+    <span class="kicker">Step 1</span>
+    <h2>Prerequisites</h2>
+    <dl class="dl">
+      <dt>CLI profile <code>SLED_fe_demo</code></dt>
+      <dd>The deploy and run commands pass <code>-p SLED_fe_demo</code>. Configure this profile once with <code>databricks configure --profile SLED_fe_demo</code> and point it at the workspace that holds the <code>rpeng_upleveling</code> catalog.</dd>
+      <dt>Write access to <code>rpeng_upleveling</code></dt>
+      <dd>The bundle creates schemas <code>dimensionality_reduction_01_bronze</code>, <code>_02_curated</code>, and <code>_03_gold</code> in that catalog. You need <code>USE CATALOG</code>, <code>CREATE SCHEMA</code>, and <code>CREATE TABLE</code> on <code>rpeng_upleveling</code>.</dd>
+      <dt>Python package (local iteration only)</dt>
+      <dd>For off-platform runs: <code>pip install -r requirements.txt</code> from the <code>pca_ica/</code> directory. The package is not required for the on-platform bundle job.</dd>
+    </dl>
+  </section>
+
+  <section class="section wrap" id="dr-deploy" data-od-id="dr-deploy">
+    <span class="kicker">Step 2</span>
+    <h2>Deploy the bundle and run the job</h2>
+    <p>From the <code>pca_ica/</code> directory, two commands stand up the bundle and start the benchmark:</p>
+    <pre><code><span class="c"># from the pca_ica/ directory · target sled</span>
+databricks bundle deploy <span class="k">-t sled</span> <span class="k">-p SLED_fe_demo</span>
+databricks bundle run dr_benchmark <span class="k">-t sled</span> <span class="k">-p SLED_fe_demo</span></code></pre>
+    <p>The deploy step creates the schemas, volume, and job under the <code>sled</code> target. The run step fans the 192-cell grid out across serverless CPU workers and logs every run to MLflow as nested child runs.</p>
+    <div class="note" data-od-id="dr-offplatform-note">
+      <span class="note__k">Off-platform iteration</span>
+      <p>The same code runs locally. Install the requirements, then run <code>pytest tests/</code> from <code>pca_ica/</code>. Off Databricks, the data loader fetches each dataset from its public URL instead of reading the silver schema. This is the fastest way to iterate on a reducer, classifier, or dataset configuration before deploying.</p>
+      <pre><code>pip install -r requirements.txt
+pytest tests/</code></pre>
+    </div>
+  </section>
+
+  <section class="section wrap" data-od-id="dr-data">
+    <span class="kicker">Step 3</span>
+    <h2>Land the data</h2>
+    <p>The bundle draws from four public US datasets. The full data dictionary, field descriptions, and medallion schema choices live on the <a href="arch-dr.html">dimensionality reduction architecture</a>. The short version:</p>
+    <div class="table-wrap">
+      <table class="tbl" data-od-id="dr-datasets-table">
+        <caption>Datasets loaded by the dr_bench bundle</caption>
+        <thead>
+          <tr><th>Key</th><th>Source</th><th>Domain</th><th>Outcome (raw continuous)</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono">nscg_2023</td>
+            <td>National Survey of College Graduates, 2023</td>
+            <td>Graduate labor market</td>
+            <td>Annual salary</td>
+          </tr>
+          <tr>
+            <td class="mono">scorecard_2026</td>
+            <td>College Scorecard, 2026</td>
+            <td>Institution performance</td>
+            <td>Median graduate earnings</td>
+          </tr>
+          <tr>
+            <td class="mono">acs_co_2024</td>
+            <td>American Community Survey, county-level, 2024</td>
+            <td>County labor market</td>
+            <td>Median wage</td>
+          </tr>
+          <tr>
+            <td class="mono">pisa_2022</td>
+            <td>PISA 2022 student microdata</td>
+            <td>Student achievement and expectations</td>
+            <td>Expected occupational status (ISEI-08)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note note--warn" data-od-id="dr-scorecard-warn">
+      <span class="note__k">Known issue: Scorecard does not land on serverless</span>
+      <p>The Scorecard source currently fails to download inside the serverless job due to egress restrictions on the workspace. The other three datasets load cleanly. Progress on a fix is tracked on the <a href="kanban.html">Kanban</a>.</p>
+    </div>
+  </section>
+
+  <section class="section wrap" data-od-id="dr-pipeline">
+    <span class="kicker">Step 4</span>
+    <h2>The pipeline per grid cell</h2>
+    <p>Each of the 192 cells runs the same four-stage pipeline. The reducer is typically the only variable that changes between two adjacent cells, which isolates its effect cleanly.</p>
+    <div class="flow" data-od-id="dr-pipeline-flow">
+      <div class="flow__step"><span class="flow__n">01</span><div><h4>Preprocess</h4><p>Impute missing values and standard-scale all numeric columns. One-hot encode categoricals, capped at 50 unique categories per column to bound feature width. Output is a dense numeric matrix ready for any reducer or classifier downstream.</p></div></div>
+      <div class="flow__step"><span class="flow__n">02</span><div><h4>Reduce (optional)</h4><p>Apply the configured reducer: <code>none</code>, <code>pca</code>, <code>ica</code>, or <code>random_projection</code>. When set to <code>none</code>, the full preprocessed matrix passes through unchanged and serves as the baseline every other reducer must beat.</p></div></div>
+      <div class="flow__step"><span class="flow__n">03</span><div><h4>Cluster features (optional)</h4><p>Fit a clustering model on the (optionally reduced) training features and append one-hot membership columns to every row. This step is off by default. When it runs, the cluster assignments join the feature matrix before the classifier sees it.</p></div></div>
+      <div class="flow__step"><span class="flow__n">04</span><div><h4>Model</h4><p>Fit the configured classifier on the training fold and evaluate on the held-out test fold. Log accuracy, F1, and ROC-AUC (both cross-validation and test) to an MLflow child run under the parent dataset run.</p></div></div>
+    </div>
+  </section>
+
+  <section class="section wrap" data-od-id="dr-reducers">
+    <span class="kicker">Step 5</span>
+    <h2>The four reducers</h2>
+    <p>One of these four keys fills the <code>reducer</code> slot in each grid cell. The <code>none</code> baseline must always run first: every other reducer is evaluated by whether it improves on that score.</p>
+    <div class="grid grid-2" style="margin-top:1.5rem" data-od-id="dr-reducers-grid">
+      <div class="card" data-od-id="reducer-none">
+        <div class="card__meta">key: none · control</div>
+        <h3>Full space (control)</h3>
+        <p>The full preprocessed feature matrix goes straight to the classifier with no rotation, compression, or projection. Every other reducer is judged by whether it improves test ROC-AUC over this score.</p>
+      </div>
+      <div class="card" data-od-id="reducer-pca">
+        <div class="card__meta">key: pca · scikit-learn PCA</div>
+        <h3>PCA</h3>
+        <p>Rotates the data to the directions of greatest variance and keeps the top <code>k</code> components (default 10). Components are uncorrelated linear blends of all original features. The fraction of variance the top <code>k</code> components retain is logged as <code>pca_explained_var</code>.</p>
+        <p>Trade: linear only, so non-linear structure is invisible to it. Each component mixes contributions from many features; reading the loadings is the primary interpretation tool.</p>
+      </div>
+      <div class="card" data-od-id="reducer-ica">
+        <div class="card__meta">key: ica · FastICA, whiten unit-variance</div>
+        <h3>ICA</h3>
+        <p>Finds statistically independent axes by maximizing non-Gaussianity. Configuration: FastICA with unit-variance whitening, <code>max_iter=1000</code>, <code>tol=1e-3</code>. Where PCA finds uncorrelated components ordered by variance, ICA finds components that are as statistically independent as possible, separating mixed signals into their sources.</p>
+        <p>Trade: components are unordered, convergence is not guaranteed on every dataset, and fitting is more expensive than PCA.</p>
+      </div>
+      <div class="card" data-od-id="reducer-rp">
+        <div class="card__meta">key: random_projection · Gaussian RP</div>
+        <h3>Random projection</h3>
+        <p>Multiplies the feature matrix by a random Gaussian matrix. The Johnson-Lindenstrauss lemma guarantees that pairwise distances are approximately preserved. Nearly free to compute.</p>
+        <p>Trade: no semantic structure, adds noise, and the projected space is not interpretable. Its value in this grid is as a fast lower-bound comparison: if random projection beats the full space, something about the original dimensionality was hurting the classifier.</p>
+      </div>
+    </div>
+
+    <figure data-od-id="dr-pca-ica-svg" style="margin-top:2rem">
+      <svg viewBox="0 0 500 210" width="500" height="210" aria-label="Conceptual diagram contrasting PCA and ICA axes" role="img" xmlns="http://www.w3.org/2000/svg">
+        <rect width="500" height="210" fill="#f9f7f4"/>
+        <!-- PCA panel label -->
+        <text x="125" y="24" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="13" font-weight="600" fill="#16282e">PCA</text>
+        <!-- data cloud ellipse suggestion -->
+        <ellipse cx="125" cy="115" rx="60" ry="34" fill="none" stroke="#e1ded7" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <!-- scatter dots -->
+        <circle cx="88"  cy="125" r="3.5" fill="#8a847e"/>
+        <circle cx="100" cy="107" r="3.5" fill="#8a847e"/>
+        <circle cx="115" cy="101" r="3.5" fill="#8a847e"/>
+        <circle cx="130" cy="108" r="3.5" fill="#8a847e"/>
+        <circle cx="145" cy="119" r="3.5" fill="#8a847e"/>
+        <circle cx="160" cy="128" r="3.5" fill="#8a847e"/>
+        <circle cx="118" cy="130" r="3.5" fill="#8a847e"/>
+        <circle cx="138" cy="104" r="3.5" fill="#8a847e"/>
+        <!-- PC1: long horizontal arrow -->
+        <line x1="60" y1="115" x2="188" y2="115" stroke="#ff3621" stroke-width="2.5"/>
+        <polygon points="188,111 196,115 188,119" fill="#ff3621"/>
+        <text x="200" y="119" font-family="DM Mono, monospace" font-size="11" fill="#ff3621">PC1</text>
+        <!-- PC2: short vertical arrow (perpendicular) -->
+        <line x1="125" y1="150" x2="125" y2="78" stroke="#16282e" stroke-width="2"/>
+        <polygon points="121,78 125,70 129,78" fill="#16282e"/>
+        <text x="129" y="67" font-family="DM Mono, monospace" font-size="11" fill="#16282e">PC2</text>
+        <text x="125" y="194" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="10" fill="#8a847e">perpendicular, ordered by variance</text>
+        <!-- divider -->
+        <line x1="250" y1="32" x2="250" y2="190" stroke="#e1ded7" stroke-width="1"/>
+        <!-- ICA panel label -->
+        <text x="375" y="24" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="13" font-weight="600" fill="#16282e">ICA</text>
+        <!-- data cloud ellipse suggestion -->
+        <ellipse cx="375" cy="115" rx="58" ry="52" fill="none" stroke="#e1ded7" stroke-width="1.5" stroke-dasharray="4 3" transform="rotate(-35, 375, 115)"/>
+        <!-- scatter dots -->
+        <circle cx="342" cy="132" r="3.5" fill="#8a847e"/>
+        <circle cx="354" cy="110" r="3.5" fill="#8a847e"/>
+        <circle cx="368" cy="100" r="3.5" fill="#8a847e"/>
+        <circle cx="382" cy="108" r="3.5" fill="#8a847e"/>
+        <circle cx="396" cy="122" r="3.5" fill="#8a847e"/>
+        <circle cx="408" cy="138" r="3.5" fill="#8a847e"/>
+        <circle cx="360" cy="128" r="3.5" fill="#8a847e"/>
+        <circle cx="390" cy="104" r="3.5" fill="#8a847e"/>
+        <!-- IC1: diagonal arrow (lower-left to upper-right) -->
+        <line x1="326" y1="148" x2="424" y2="82" stroke="#ff3621" stroke-width="2.5"/>
+        <polygon points="420,78 429,81 423,88" fill="#ff3621"/>
+        <text x="432" y="86" font-family="DM Mono, monospace" font-size="11" fill="#ff3621">IC1</text>
+        <!-- IC2: non-perpendicular to IC1 (different diagonal) -->
+        <line x1="406" y1="145" x2="344" y2="85" stroke="#16282e" stroke-width="2"/>
+        <polygon points="348,82 340,79 344,88" fill="#16282e"/>
+        <text x="310" y="78" font-family="DM Mono, monospace" font-size="11" fill="#16282e">IC2</text>
+        <text x="375" y="194" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="10" fill="#8a847e">non-perpendicular, statistically independent</text>
+      </svg>
+      <figcaption>Conceptual, not a data plot. PCA constrains components to be orthogonal (perpendicular) and orders them by explained variance. ICA finds axes that are statistically independent; they need not be perpendicular and carry no variance ordering.</figcaption>
+    </figure>
+  </section>
+
+  <section class="section wrap" data-od-id="dr-clustering">
+    <span class="kicker">Step 6</span>
+    <h2>Clustering as features</h2>
+    <p>After the optional reduce step, the pipeline can append cluster-membership columns to the feature matrix. This answers a structural question the classifier cannot ask on its own: which cohort does this record belong to? That signal can lift classifiers that struggle with non-convex decision regions.</p>
+    <div class="grid grid-2" style="margin-top:1.25rem">
+      <div class="card" data-od-id="clustering-kmeans">
+        <div class="card__meta">key: kmeans · default on</div>
+        <h3>K-Means</h3>
+        <p>Fits K-Means with 4 clusters on the (optionally reduced) training features, then appends one-hot membership columns to every row in both training and test splits. The four binary columns give the classifier explicit cohort signals. Included in the default sweep.</p>
+      </div>
+      <div class="card" data-od-id="clustering-gmm">
+        <div class="card__meta">key: gmm · registered, off by default</div>
+        <h3>Gaussian mixture</h3>
+        <p>A Gaussian mixture model over the same feature space. Soft membership probabilities replace K-Means hard assignments: each row gets a probability for each mixture component rather than a binary flag. Registered in the grid but excluded from the default sweep to keep cell count manageable.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section wrap" data-od-id="dr-models">
+    <span class="kicker">Step 7</span>
+    <h2>The classifiers</h2>
+    <p>Seven classifiers are registered; six run in the default sweep. <code>svm_linear</code> is off by default. Each cell in the grid uses exactly one.</p>
+    <div class="table-wrap">
+      <table class="tbl" data-od-id="dr-models-table">
+        <caption>Classifiers registered in the dr_bench bundle</caption>
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>What it is</th>
+            <th>Strengths</th>
+            <th>Watch-outs</th>
+            <th>Reach for it when</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono">logistic_regression</td>
+            <td>Linear model of log-odds</td>
+            <td>Fast, interpretable coefficients, calibrated probabilities</td>
+            <td>No native non-linearities; requires scaling</td>
+            <td>The baseline. Run it first on every dataset.</td>
+          </tr>
+          <tr>
+            <td class="mono">svm_rbf</td>
+            <td>SVM with RBF kernel</td>
+            <td>Flexible non-linear decision boundaries</td>
+            <td>Quadratic training cost; the sweep caps rows at roughly 6,000 for this reason</td>
+            <td>Small-to-medium data. Often the best single model after a well-chosen reduction.</td>
+          </tr>
+          <tr>
+            <td class="mono">svm_linear</td>
+            <td>Linear-kernel SVM</td>
+            <td>Handles wide, sparse one-hot spaces well</td>
+            <td>Slower than logistic regression with limited additional benefit in most settings; off by default</td>
+            <td>Features already occupy a good linear space and you want a margin-based classifier.</td>
+          </tr>
+          <tr>
+            <td class="mono">knn</td>
+            <td>k-nearest neighbors (k = 7)</td>
+            <td>Non-parametric, captures irregular local structure</td>
+            <td>Slow at inference; sensitive to scale and noise</td>
+            <td>Irregular decision boundaries. Gains most from PCA or ICA denoising.</td>
+          </tr>
+          <tr>
+            <td class="mono">random_forest</td>
+            <td>300 bagged decision trees</td>
+            <td>Handles mixed feature types; built-in feature importance</td>
+            <td>Memory-heavy; reduction can sometimes discard signal it relies on</td>
+            <td>A strong tabular baseline when you also want variable importances.</td>
+          </tr>
+          <tr>
+            <td class="mono">xgboost</td>
+            <td>Gradient-boosted trees (depth 4, 300 rounds)</td>
+            <td>State-of-the-art on tabular data; handles missing values natively</td>
+            <td>More hyperparameters; sequential training</td>
+            <td>The model to beat. If XGBoost on the full space loses to a reduced space, the reducer is doing something real.</td>
+          </tr>
+          <tr>
+            <td class="mono">mlp</td>
+            <td>Small neural net: 64 then 32 units</td>
+            <td>Captures non-linear interactions</td>
+            <td>Requires scaling; slow on CPU</td>
+            <td>Sanity check against the tree models. Rarely wins on small tabular data.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section wrap" data-od-id="dr-grid">
+    <span class="kicker">Step 8</span>
+    <h2>Run the grid and read the leaderboard</h2>
+    <p>The default grid spans 4 datasets, 4 reducer configurations (none, plus PCA, ICA, and random projection each at a default component count), 2 clustering states (K-Means on or off), and 6 classifiers: 4 × 4 × 2 × 6 = 192 cells. Every cell is a nested MLflow child run under its parent dataset run.</p>
+
+    <h3 style="margin-top:2rem">Leaderboard columns</h3>
+    <p>The gold leaderboard table at <code>rpeng_upleveling.dimensionality_reduction_03_gold.dr_leaderboard</code> holds one row per grid cell. No results are published here; the schema describes what the table will contain once the full run completes.</p>
+    <div class="table-wrap">
+      <table class="tbl" data-od-id="dr-leaderboard-cols">
+        <caption>Leaderboard columns (schema, not results)</caption>
+        <thead>
+          <tr><th>Column</th><th>What it records</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="mono">dataset</td><td>One of the four dataset keys</td></tr>
+          <tr><td class="mono">reducer</td><td>The reducer key for this cell</td></tr>
+          <tr><td class="mono">n_components</td><td>Number of components kept; null for the <code>none</code> baseline</td></tr>
+          <tr><td class="mono">clustering</td><td>The clustering key, or <code>none</code></td></tr>
+          <tr><td class="mono">model</td><td>The classifier key for this cell</td></tr>
+          <tr><td class="mono">cv_accuracy · cv_f1 · cv_roc_auc</td><td>Cross-validation scores computed on the training fold</td></tr>
+          <tr><td class="mono">test_accuracy · test_f1 · test_roc_auc</td><td>Held-out test scores; <code>test_roc_auc</code> is the primary ranking column</td></tr>
+          <tr><td class="mono">cv_seconds</td><td>Wall time for the cross-validation step</td></tr>
+          <tr><td class="mono">pca_explained_var</td><td>Fraction of variance retained; null for non-PCA reducers</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The <code>model_comparison</code> view aggregates the best <code>test_roc_auc</code> per (dataset, model, reducer) triple for quick cross-model reading without scanning individual cells.</p>
+
+    <h3 style="margin-top:2rem">Three questions to ask of the leaderboard</h3>
+    <div class="flow" data-od-id="dr-leaderboard-questions">
+      <div class="flow__step"><span class="flow__n">01</span><div><h4>Does reduction beat none?</h4><p>Compare the best cell per reducer against the best <code>none</code> cell on the same dataset and model. If PCA or ICA improves test ROC-AUC over the full space, the reduction is doing real work: denoising, collapsing collinear dimensions, or both. If random projection also beats none, the original feature count was simply too large for the classifier regardless of structure.</p></div></div>
+      <div class="flow__step"><span class="flow__n">02</span><div><h4>Do K-Means cluster features add lift?</h4><p>Compare the clustering-on and clustering-off cells for the same (dataset, reducer, model) triple. A consistent lift means cohort membership is a genuine signal. No lift means the classifier already captures the grouping structure through the features themselves.</p></div></div>
+      <div class="flow__step"><span class="flow__n">03</span><div><h4>How does <code>pca_explained_var</code> track ROC-AUC?</h4><p>Sort by <code>pca_explained_var</code> for a fixed (dataset, model) pair and watch how ROC-AUC moves. If ROC-AUC peaks well below 1.0 explained variance, the predictive signal concentrates in a low-rank subspace and the remaining variance is noise. If ROC-AUC keeps climbing as you add components, the signal is distributed and aggressive reduction hurts.</p></div></div>
+    </div>
+  </section>
+
+  <section class="section wrap" data-od-id="dr-extend">
+    <span class="kicker">Step 9</span>
+    <h2>Register and extend</h2>
+
+    <h3>Register the best pipeline</h3>
+    <p>Set <code>register_best: true</code> in <code>conf/experiments.yml</code>. After the grid completes, the final task evaluates every dataset and registers the top-scoring pipeline to Unity Catalog:</p>
+    <pre><code>rpeng_upleveling.dimensionality_reduction_02_curated.dr_best_<span class="k">&lt;dataset&gt;</span></code></pre>
+    <p>Each registered model carries the full sklearn pipeline: preprocessor, reducer (if any), cluster featurizer (if any), and classifier. Logged artifact lineage in MLflow links the registered model back to the run that produced it.</p>
+
+    <h3 style="margin-top:1.75rem">Extend the grid</h3>
+    <p>The grid expands by registry append. Add one entry to the relevant module; the dispatch, evaluation, and leaderboard pick it up automatically on the next run.</p>
+    <div class="table-wrap">
+      <table class="tbl" data-od-id="dr-extend-table">
+        <caption>Where to add a new component</caption>
+        <thead>
+          <tr><th>What you want to add</th><th>Where to add it</th><th>Then</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>A new dataset</td>
+            <td><code>datasets.py</code>: one <code>DatasetSpec</code> entry</td>
+            <td>Add its key to <code>conf/experiments.yml</code></td>
+          </tr>
+          <tr>
+            <td>A new reducer</td>
+            <td><code>reducers.py</code>: one entry in <code>REDUCERS</code></td>
+            <td>Add its key to <code>conf/experiments.yml</code></td>
+          </tr>
+          <tr>
+            <td>A new classifier</td>
+            <td><code>models.py</code>: one entry in <code>MODELS</code></td>
+            <td>Add its key to <code>conf/experiments.yml</code></td>
+          </tr>
+          <tr>
+            <td>A new clustering method</td>
+            <td><code>clustering.py</code>: one entry in <code>CLUSTERINGS</code></td>
+            <td>Add its key to <code>conf/experiments.yml</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section wrap" data-od-id="dr-outcomes">
+    <span class="kicker">Reading outcomes</span>
+    <h2>Reading outcomes from the factors</h2>
+    <p class="lead">The four datasets mix attributes a program cannot change and actions it can take. Understanding which kind of attribute loads onto which factor is what makes results interpretable and actionable.</p>
+
+    <div class="grid grid-2" style="margin-top:1.5rem">
+      <div class="card" data-od-id="dr-non-actionable">
+        <div class="card__meta">Attributes a program cannot change</div>
+        <h3>Background and demographic features</h3>
+        <p>Age, birthplace, race and ethnicity, parental education, prior academic preparation, disability status, English proficiency. These attributes describe who a student or graduate is. A model trained on them can predict outcomes, but a program cannot act on them to change anyone's trajectory.</p>
+        <p>Keep these features in the analysis for fairness auditing: you need them to measure whether a model produces disparate outcomes. Remove them from any scoring pipeline that touches individual decisions.</p>
+      </div>
+      <div class="card" data-od-id="dr-actionable">
+        <div class="card__meta">Actions a program can take</div>
+        <h3>Policy and program features</h3>
+        <p>Admissions selectivity, tuition and net price, financial aid generosity, advising intensity, program design, field of study, school climate, hours worked, credential level. A factor that co-moves with earnings and loads heavily on these attributes names a place to investigate for intervention.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:2rem">How to read a PCA component</h3>
+    <p>A PCA component is a weighted recipe over the original features. Sort the loadings by absolute value and read the five to ten heaviest. The pattern names the latent factor. Two examples from the institution-level data:</p>
+    <ul>
+      <li>Low admit rate + high SAT average + high total cost + high completion rate: a "selectivity and resources" factor. Institutions that score high here tend to post high median earnings, but the factor conflates exclusion with investment. High loadings here do not imply a transferable program design.</li>
+      <li>High Pell share + open admissions + regional locale + low cost: an "access mission" factor. Institutions here serve lower-income students; strong earnings on this factor signal real value-add against a harder starting population.</li>
+    </ul>
+    <p>The same reading applies to NSCG or ACS: components that blend field of study, hours worked, and credential level onto one axis describe an intensity-of-investment factor distinct from an employer-market factor that loads on sector, location, and industry.</p>
+
+    <h3 style="margin-top:2rem">How to read an ICA component</h3>
+    <p>ICA components are statistically independent sources. Where PCA might place student background and program intensity on the same axis because they correlate in the raw data, ICA separates them: a "student background" source and a "program intensity" source can each vary without the other moving. If one source predicts outcomes after you hold the other fixed, it is doing independent explanatory work.</p>
+
+    <div class="note note--warn" data-od-id="dr-fairness-note">
+      <span class="note__k">Fairness, privacy, and legal obligations</span>
+      <p>Reduction surfaces associations, not causes. A factor that co-moves with an outcome is a place to investigate, not a verdict on a person. Keep demographic attributes in the pipeline for fairness auditing; run the full analysis under Unity Catalog access controls and data lineage so every model and query can be reviewed. Respect FERPA and equivalent state law: student-level records are protected. Pair any predictions that could affect an individual with human review before that prediction reaches a decision about a student.</p>
+    </div>
+  </section>
+
+  <section class="section section--tight wrap" data-od-id="dr-next">
+    <div style="text-align:center">
+      <a class="btn btn--primary" href="kanban.html">What is left to build <span class="btn__arrow" aria-hidden="true">→</span></a>
+      <a class="btn btn--ghost" href="repo-cv.html">Computer vision repo</a>
+    </div>
+  </section>
+
+</main>
+<script src="assets/site.js"></script>
+</body>
+</html>

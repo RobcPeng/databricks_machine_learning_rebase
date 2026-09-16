@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Computer vision architecture · benchmark harnesses on Databricks</title>
+<meta name="description" content="System topology, medallion data flow, ERD, and schema reference for the obj_recg computer-vision Asset Bundle.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body data-od-id="page-arch-cv">
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav" data-od-id="nav">
+  <div class="nav__inner">
+    <a class="brand" href="index.html">built with Databricks</a>
+    <button class="nav__toggle" aria-expanded="false" aria-controls="navlinks">Menu</button>
+    <nav class="nav__links" id="navlinks" aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <div class="nav__group">
+        <a href="architecture.html" class="nav__parent">Architecture</a>
+        <div class="nav__menu">
+          <a href="arch-cv.html" aria-current="page">Computer vision</a>
+          <a href="arch-dr.html">Dimensionality reduction</a>
+        </div>
+      </div>
+      <div class="nav__group">
+        <a href="repositories.html" class="nav__parent">Repositories</a>
+        <div class="nav__menu">
+          <a href="repo-cv.html">Computer vision</a>
+          <a href="repo-dr.html">Dimensionality reduction</a>
+        </div>
+      </div>
+      <a href="kanban.html">Kanban</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero wrap" data-od-id="hero">
+    <span class="kicker">Computer vision architecture · uplevels_cv</span>
+    <h1>obj_recg, wired end to end<span class="dot">.</span></h1>
+    <p class="lead">Four schemas, one managed volume, and a serverless pipeline carry raw label JSON through bronze and silver into a gold leaderboard and team predictions.</p>
+    <div class="statrow" style="margin-top:2rem">
+      <div class="stat"><div class="stat__num">4</div><div class="stat__label">Schemas</div></div>
+      <div class="stat"><div class="stat__num">1</div><div class="stat__label">Managed volume</div></div>
+      <div class="stat"><div class="stat__num">6</div><div class="stat__label">Model families</div></div>
+      <div class="stat"><div class="stat__num">9</div><div class="stat__label">Model specs</div></div>
+    </div>
+  </section>
+
+  <section class="section wrap" data-od-id="cv-topology">
+    <span class="kicker">Topology</span>
+    <h2>System topology</h2>
+    <p>The bundle deploys four schema layers, one volume, one pipeline, and one job into the <code>rpeng_upleveling</code> catalog; trained models surface in Unity Catalog.</p>
+
+    <div class="layers" style="margin:2rem 0">
+      <div class="layer">
+        <div class="layer__label">Source</div>
+        <div class="node node--ink"><span class="lbl">bundle</span>databricks.yml · uplevels_cv</div>
+      </div>
+      <div class="layer">
+        <div class="layer__label">Deployed resources</div>
+        <div class="node"><span class="lbl">schema</span>UC schemas 00–03</div>
+        <div class="node"><span class="lbl">storage</span>managed volume cv_data</div>
+        <div class="node"><span class="lbl">pipeline</span>serverless Lakeflow pipeline</div>
+        <div class="node"><span class="lbl">job</span>train_and_compare</div>
+      </div>
+      <div class="layer">
+        <div class="layer__label">Execution</div>
+        <div class="node node--accent"><span class="lbl">compute</span>serverless GPU (A10)</div>
+        <div class="node"><span class="lbl">envs</span>cv_env · mmpose_env · mediapipe_env · teamperf_env</div>
+      </div>
+      <div class="layer">
+        <div class="layer__label">Tracking</div>
+        <div class="node"><span class="lbl">mlflow</span>one experiment per family</div>
+      </div>
+      <div class="layer">
+        <div class="layer__label">Governance</div>
+        <div class="node node--ink"><span class="lbl">registry</span>Unity Catalog model registry · @prod alias</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="tbl">
+        <caption>Component inventory</caption>
+        <thead>
+          <tr><th>Component</th><th>Resource</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Catalog</td>
+            <td class="mono">rpeng_upleveling</td>
+            <td>Must pre-exist; bundle does not create it.</td>
+          </tr>
+          <tr>
+            <td>Landing schema</td>
+            <td class="mono">seeing_models_00_landing</td>
+            <td>Hosts the managed volume <code>cv_data</code>; raw files staged here.</td>
+          </tr>
+          <tr>
+            <td>Bronze schema</td>
+            <td class="mono">seeing_models_01_bronze</td>
+            <td>COCO arrays exploded; streamed from landing.</td>
+          </tr>
+          <tr>
+            <td>Silver schema</td>
+            <td class="mono">seeing_models_02_silver</td>
+            <td>Quality expectations applied; failing rows dropped.</td>
+          </tr>
+          <tr>
+            <td>Gold schema</td>
+            <td class="mono">seeing_models_03_gold</td>
+            <td>Views and tables consumed by training and comparison tasks.</td>
+          </tr>
+          <tr>
+            <td>Managed volume</td>
+            <td class="mono">cv_data</td>
+            <td>In landing schema; source for Auto Loader.</td>
+          </tr>
+          <tr>
+            <td>Pipeline</td>
+            <td class="mono">[target] uplevels_cv medallion</td>
+            <td>Serverless LDP, Photon.</td>
+          </tr>
+          <tr>
+            <td>Job</td>
+            <td class="mono">train_and_compare</td>
+            <td>One task per family; default parameter <code>sport=golf</code>.</td>
+          </tr>
+          <tr>
+            <td>Registry name pattern</td>
+            <td class="mono">rpeng_upleveling.seeing_models_03_gold.&lt;sport&gt;_&lt;model_key&gt;</td>
+            <td>One registered model per (sport, model_key) pair.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section wrap" data-od-id="cv-dataflow">
+    <span class="kicker">Medallion flow</span>
+    <h2>Data flow (medallion)</h2>
+    <p>Auto Loader drives ingest from the managed volume; each stage is a Lakeflow pipeline layer.</p>
+
+    <div class="pipe" style="margin:1.5rem 0">
+      <div class="pipe__stage">
+        <span class="lbl">00 landing · seeing_models_00_landing</span>
+        <h4>Raw ingest</h4>
+        <p>Auto Loader ingests raw label JSON, frame metadata, and game CSVs into <code>raw_labels</code>, <code>frames</code>, and <code>games</code>.</p>
+      </div>
+      <span class="pipe__arrow" aria-hidden="true">&rarr;</span>
+      <div class="pipe__stage">
+        <span class="lbl">01 bronze · seeing_models_01_bronze</span>
+        <h4>Explode arrays</h4>
+        <p>COCO annotation arrays exploded into <code>images</code>, <code>keypoints</code>, and <code>games</code> with derived <code>win</code> column.</p>
+      </div>
+      <span class="pipe__arrow" aria-hidden="true">&rarr;</span>
+      <div class="pipe__stage">
+        <span class="lbl">02 silver · seeing_models_02_silver</span>
+        <h4>Quality filter</h4>
+        <p>Expectations drop rows that fail checks; surviving rows written to <code>images</code>, <code>keypoints</code>, and <code>games</code>.</p>
+      </div>
+      <span class="pipe__arrow" aria-hidden="true">&rarr;</span>
+      <div class="pipe__stage">
+        <span class="lbl">03 gold · seeing_models_03_gold</span>
+        <h4>Training surfaces</h4>
+        <p>Views <code>training_manifest</code>, <code>athlete_metrics</code>, <code>team_game_features</code>; tables <code>model_comparison</code> and <code>team_predictions</code>.</p>
+      </div>
+    </div>
+
+    <p><strong>Silver quality expectations</strong></p>
+    <div>
+      <span class="chip chip--accent">known split</span>
+      <span class="chip">bbox_area &gt; 0</span>
+      <span class="chip">num_visible_keypoints &gt;= 5</span>
+      <span class="chip">non-negative score</span>
+    </div>
+  </section>
+
+  <section class="section wrap" data-od-id="cv-erd">
+    <span class="kicker">Data model</span>
+    <h2>Entity-relationship model</h2>
+    <p>Eight entities across four schemas; <code>image_id</code> is the join spine for all CV tables.</p>
+
+    <div class="erd" style="margin:1.5rem 0">
+      <div class="entity">
+        <div class="entity__head"><span>images</span><span class="schema">01_bronze / 02_silver</span></div>
+        <div class="entity__row"><span class="col">image_id <span class="key key--pk">PK</span></span><span class="ty">bigint</span></div>
+        <div class="entity__row"><span class="col">file_name</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">width</span><span class="ty">int</span></div>
+        <div class="entity__row"><span class="col">height</span><span class="ty">int</span></div>
+        <div class="entity__row"><span class="col">sport</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">split</span><span class="ty">string</span></div>
+      </div>
+
+      <div class="entity">
+        <div class="entity__head"><span>keypoints</span><span class="schema">01_bronze / 02_silver</span></div>
+        <div class="entity__row"><span class="col">image_id <span class="key key--fk">FK</span></span><span class="ty">bigint</span></div>
+        <div class="entity__row"><span class="col">category_id</span><span class="ty">int</span></div>
+        <div class="entity__row"><span class="col">bbox</span><span class="ty">array&lt;double&gt;</span></div>
+        <div class="entity__row"><span class="col">bbox_area</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">keypoints</span><span class="ty">array&lt;double&gt;</span></div>
+        <div class="entity__row"><span class="col">num_visible_keypoints</span><span class="ty">int</span></div>
+        <div class="entity__row"><span class="col">sport</span><span class="ty">string</span></div>
+      </div>
+
+      <div class="entity">
+        <div class="entity__head"><span>games</span><span class="schema">01_bronze / 02_silver</span></div>
+        <div class="entity__row"><span class="col">game_id <span class="key key--pk">PK</span></span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">team</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">opponent</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">game_date</span><span class="ty">date</span></div>
+        <div class="entity__row"><span class="col">points_for</span><span class="ty">int</span></div>
+        <div class="entity__row"><span class="col">points_against</span><span class="ty">int</span></div>
+        <div class="entity__row"><span class="col">win</span><span class="ty">int</span></div>
+        <div class="entity__row"><span class="col">off_efficiency</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">def_efficiency</span><span class="ty">double</span></div>
+      </div>
+
+      <div class="entity">
+        <div class="entity__head"><span>training_manifest</span><span class="schema">03_gold (view)</span></div>
+        <div class="entity__row"><span class="col">image_id <span class="key key--fk">FK</span></span><span class="ty">bigint</span></div>
+        <div class="entity__row"><span class="col">sport</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">file_name</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">split</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">num_instances</span><span class="ty">int</span></div>
+        <div class="entity__row"><span class="col">avg_visible_keypoints</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">total_bbox_area</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">has_pose</span><span class="ty">boolean</span></div>
+      </div>
+
+      <div class="entity">
+        <div class="entity__head"><span>athlete_metrics</span><span class="schema">03_gold (view)</span></div>
+        <div class="entity__row"><span class="col">image_id <span class="key key--fk">FK</span></span><span class="ty">bigint</span></div>
+        <div class="entity__row"><span class="col">sport</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">category_id</span><span class="ty">int</span></div>
+        <div class="entity__row"><span class="col">bbox_area</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">num_visible_keypoints</span><span class="ty">int</span></div>
+      </div>
+
+      <div class="entity">
+        <div class="entity__head"><span>team_game_features</span><span class="schema">03_gold (view)</span></div>
+        <div class="entity__row"><span class="col">sport</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">team</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">game_date</span><span class="ty">date</span></div>
+        <div class="entity__row"><span class="col">form_points_for</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">form_points_against</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">form_win_rate</span><span class="ty">double</span></div>
+      </div>
+
+      <div class="entity">
+        <div class="entity__head"><span>model_comparison</span><span class="schema">03_gold (table)</span></div>
+        <div class="entity__row"><span class="col">sport</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">model_key <span class="key key--pk">PK</span></span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">family</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">task</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">run_id</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">detect_map</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">detect_map50</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">pose_map</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">pose_oks</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">mpjpe_mm</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">latency_ms_p50</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">latency_ms_p95</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">params_millions</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">size_mb</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">train_seconds</span><span class="ty">double</span></div>
+      </div>
+
+      <div class="entity">
+        <div class="entity__head"><span>team_predictions</span><span class="schema">03_gold (table)</span></div>
+        <div class="entity__row"><span class="col">sport</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">scope</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">target</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">entity_id</span><span class="ty">string</span></div>
+        <div class="entity__row"><span class="col">prediction</span><span class="ty">double</span></div>
+        <div class="entity__row"><span class="col">scored_at</span><span class="ty">timestamp</span></div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="tbl">
+        <caption>Relationships</caption>
+        <thead>
+          <tr><th>From</th><th>To</th><th>Cardinality</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono">keypoints.image_id</td>
+            <td class="mono">images.image_id</td>
+            <td>Many-to-one</td>
+          </tr>
+          <tr>
+            <td class="mono">training_manifest.image_id</td>
+            <td class="mono">images.image_id</td>
+            <td>One-to-one per frame</td>
+          </tr>
+          <tr>
+            <td class="mono">athlete_metrics.image_id</td>
+            <td class="mono">images.image_id</td>
+            <td>Many-to-one</td>
+          </tr>
+          <tr>
+            <td class="mono">team_game_features</td>
+            <td class="mono">games (sport, team, game_date)</td>
+            <td>Derived by rolling window aggregation</td>
+          </tr>
+          <tr>
+            <td class="mono">model_comparison</td>
+            <td class="mono">model zoo (sport, model_key)</td>
+            <td>One row per (sport, model_key) from the MODEL_ZOO registry</td>
+          </tr>
+          <tr>
+            <td class="mono">team_predictions</td>
+            <td class="mono">(sport, target, entity_id)</td>
+            <td>One prediction per scope key at scored_at</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section wrap" data-od-id="cv-dispatch">
+    <span class="kicker">Code path</span>
+    <h2>Model dispatch and registry</h2>
+    <p>Adding one entry to any registry is one line; the dispatch loop handles the rest.</p>
+
+    <div class="pipe" style="margin:1.5rem 0">
+      <div class="pipe__stage">
+        <span class="lbl">config.py</span>
+        <h4>MODEL_ZOO</h4>
+        <p><code>ModelSpec</code>: family, task, weights path, training params.</p>
+      </div>
+      <span class="pipe__arrow" aria-hidden="true">&rarr;</span>
+      <div class="pipe__stage">
+        <span class="lbl">factory</span>
+        <h4>build_model()</h4>
+        <p>Selects trainer by family key from the zoo registry.</p>
+      </div>
+      <span class="pipe__arrow" aria-hidden="true">&rarr;</span>
+      <div class="pipe__stage">
+        <span class="lbl">per-family trainer</span>
+        <h4>train_spec()</h4>
+        <p>Runs training; logs params and artifacts to MLflow.</p>
+      </div>
+      <span class="pipe__arrow" aria-hidden="true">&rarr;</span>
+      <div class="pipe__stage">
+        <span class="lbl">eval</span>
+        <h4>COCOeval</h4>
+        <p>pycocotools computes mAP, OKS, and MPJPE per run.</p>
+      </div>
+      <span class="pipe__arrow" aria-hidden="true">&rarr;</span>
+      <div class="pipe__stage">
+        <span class="lbl">compare</span>
+        <h4>write_comparison()</h4>
+        <p>All metrics written to <code>gold.model_comparison</code>, one row per spec.</p>
+      </div>
+      <span class="pipe__arrow" aria-hidden="true">&rarr;</span>
+      <div class="pipe__stage">
+        <span class="lbl">registry</span>
+        <h4>UC register + @prod</h4>
+        <p>Best model per family registered in Unity Catalog; <code>@prod</code> alias set.</p>
+      </div>
+    </div>
+
+    <div class="note">
+      <span class="note__k">Sibling registries</span>
+      <p><strong>SportSpec</strong> (<code>_SPORTS</code> in <code>sports.py</code>): detection classes, signature events, and biomechanics angles per sport. Six sports; golf is the default. <strong>PredictionTarget</strong> (<code>_TARGETS</code> in <code>team_performance.py</code>): XGBoost target definitions; 7 targets. Each registry is a Python dict; adding one entry enables a new sport or prediction target end to end.</p>
+    </div>
+  </section>
+
+  <section class="section wrap" data-od-id="cv-env-metrics">
+    <span class="kicker">Compute and telemetry</span>
+    <h2>Environments and metrics</h2>
+    <p>Each environment is a separate bundle environment definition; tasks declare which one they need.</p>
+
+    <div class="grid grid-2" style="margin:1.5rem 0">
+      <div class="table-wrap">
+        <table class="tbl">
+          <caption>Environments</caption>
+          <thead>
+            <tr><th>Name</th><th>Key packages</th><th>Used by</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">cv_env</td>
+              <td>ultralytics, pycocotools, opencv, mlflow</td>
+              <td class="small">setup · train_yolo · train_resnet · train_cnn · train_rtdetr · compare</td>
+            </tr>
+            <tr>
+              <td class="mono">mmpose_env</td>
+              <td>openmim, mmengine, mmcv, mmdet, mmpose</td>
+              <td class="small">train_rtmpose</td>
+            </tr>
+            <tr>
+              <td class="mono">mediapipe_env</td>
+              <td>mediapipe</td>
+              <td class="small">eval_mediapipe</td>
+            </tr>
+            <tr>
+              <td class="mono">teamperf_env</td>
+              <td>xgboost, scikit-learn</td>
+              <td class="small">train_team_performance</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap">
+        <table class="tbl">
+          <caption>Metrics in model_comparison (no values yet)</caption>
+          <thead>
+            <tr><th>Column</th><th>Measures</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono">detect_map</td><td>Bbox mAP across all IoU thresholds</td></tr>
+            <tr><td class="mono">detect_map50</td><td>Bbox mAP at IoU 0.50</td></tr>
+            <tr><td class="mono">pose_map</td><td>Keypoint mAP</td></tr>
+            <tr><td class="mono">pose_oks</td><td>Object Keypoint Similarity</td></tr>
+            <tr><td class="mono">mpjpe_mm</td><td>3D joint position error (mm); blank until 3D ground truth is available</td></tr>
+            <tr><td class="mono">latency_ms_p50</td><td>Inference latency, p50</td></tr>
+            <tr><td class="mono">latency_ms_p95</td><td>Inference latency, p95</td></tr>
+            <tr><td class="mono">params_millions</td><td>Total parameter count</td></tr>
+            <tr><td class="mono">size_mb</td><td>Model file size on disk</td></tr>
+            <tr><td class="mono">train_seconds</td><td>Wall-clock training time</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="note note--warn">
+      <span class="note__k">Compute fallback</span>
+      <p>Serverless GPU defaults to A10. Classic T4 or A100 can be substituted by changing the environment's cluster spec; no code changes required.</p>
+    </div>
+  </section>
+
+  <section class="section section--tight wrap center" data-od-id="cv-cta">
+    <div class="hero__actions" style="justify-content:center">
+      <a class="btn btn--primary" href="arch-dr.html">Dimensionality reduction architecture <span class="btn__arrow" aria-hidden="true">→</span></a>
+      <a class="btn btn--ghost" href="repo-cv.html">Computer vision walkthrough</a>
+    </div>
+  </section>
+
+</main>
+<script src="assets/site.js"></script>
+</body>
+</html>

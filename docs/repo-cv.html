@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Computer vision repo · benchmark harnesses on Databricks</title>
+<meta name="description" content="Zero to hero for the obj_recg computer-vision Asset Bundle: deploy, stage data, run the medallion pipeline, benchmark the model zoo, read the leaderboard, and extend it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body data-od-id="page-repo-cv">
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav" data-od-id="nav">
+  <div class="nav__inner">
+    <a class="brand" href="index.html">built with Databricks</a>
+    <button class="nav__toggle" aria-expanded="false" aria-controls="navlinks">Menu</button>
+    <nav class="nav__links" id="navlinks" aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <div class="nav__group">
+        <a href="architecture.html" class="nav__parent">Architecture</a>
+        <div class="nav__menu">
+          <a href="arch-cv.html">Computer vision</a>
+          <a href="arch-dr.html">Dimensionality reduction</a>
+        </div>
+      </div>
+      <div class="nav__group">
+        <a href="repositories.html" class="nav__parent">Repositories</a>
+        <div class="nav__menu">
+          <a href="repo-cv.html" aria-current="page">Computer vision</a>
+          <a href="repo-dr.html">Dimensionality reduction</a>
+        </div>
+      </div>
+      <a href="kanban.html">Kanban</a>
+    </nav>
+  </div>
+</header>
+<main id="main">
+
+  <section class="hero wrap" data-od-id="hero">
+    <span class="kicker">Computer vision repo · uplevels_cv</span>
+    <h1>From an empty catalog to a scored swing<span class="dot">.</span></h1>
+    <p class="lead">This bundle locates the athlete and equipment with bounding boxes and traces the pose keypoints of a golf swing, then predicts team and athlete performance from what the camera saw. It benchmarks a grid of vision models so you commit to one on evidence.</p>
+  </section>
+
+  <section class="section section--tight wrap" aria-label="At a glance" data-od-id="stat-row">
+    <div class="statrow">
+      <div class="stat"><div class="stat__num">6</div><div class="stat__label">Model families</div></div>
+      <div class="stat"><div class="stat__num">9</div><div class="stat__label">Model specs</div></div>
+      <div class="stat"><div class="stat__num">6</div><div class="stat__label">Sports</div></div>
+      <div class="stat"><div class="stat__num">7</div><div class="stat__label">Team-performance targets</div></div>
+    </div>
+  </section>
+
+  <section class="section wrap" id="step-0" data-od-id="step-0-what-it-is">
+    <span class="kicker">Step 0</span>
+    <h2>What it is: two layers</h2>
+    <div class="grid grid-2" style="margin-top:1.25rem">
+      <div class="card" data-od-id="layer-1-cv">
+        <div class="card__meta">Layer 1 · computer vision</div>
+        <h3>Detect and trace</h3>
+        <p>Three tasks run over the same frames.</p>
+        <ul>
+          <li><strong>Object detection:</strong> bounding boxes around the golfer, club, and ball.</li>
+          <li><strong>2D pose:</strong> 17 COCO keypoints connected into the swing skeleton you see overlaid on broadcast video.</li>
+          <li><strong>3D pose:</strong> 33 BlazePose landmarks with depth, for swing-plane and rotation angles that 2D coordinates cannot reach.</li>
+        </ul>
+      </div>
+      <div class="card" data-od-id="layer-2-team">
+        <div class="card__meta">Layer 2 · team performance</div>
+        <h3>Predict from what was seen</h3>
+        <p>CV-derived features from Layer 1 (biomechanics angles, bounding-box areas, visible keypoint counts) plus game-result CSVs feed XGBoost models across seven prediction targets:</p>
+        <p>win probability · points scored · points allowed · offensive efficiency · defensive efficiency · per-athlete performance index · scholarship ROI.</p>
+      </div>
+    </div>
+    <div class="note" style="margin-top:1.5rem">
+      <span class="note__k">Parameterized by sport</span>
+      <p>Golf is the default and motivating case; football, basketball, baseball, hockey, and tennis run without code changes. The sport is a job parameter (<code>sport=golf</code>) and a one-entry registry. Detection classes, signature events, and biomechanics angles all live in a per-sport spec.</p>
+    </div>
+  </section>
+
+  <section class="section wrap" id="step-1" data-od-id="step-1-prereqs">
+    <span class="kicker">Step 1</span>
+    <h2>Prerequisites</h2>
+    <p>Three things to have in place before you start.</p>
+    <dl class="dl">
+      <dt>Databricks CLI profile</dt>
+      <dd>A profile named <code>SLED_fe_demo</code> targeting <code>adb-3438839487639471.11.azuredatabricks.net</code>. If you already use a different profile name, pass it to <code>-p</code> instead.</dd>
+      <dt>Catalog write access</dt>
+      <dd>Write permissions on the <code>rpeng_upleveling</code> catalog: CREATE SCHEMA and WRITE VOLUME at minimum.</dd>
+      <dt>uv</dt>
+      <dd>The <code>uv</code> package manager, installed locally. The bundle uses it to manage the Python environments for each job task.</dd>
+    </dl>
+  </section>
+
+  <section class="section wrap" id="step-2" data-od-id="step-2-deploy">
+    <span class="kicker">Step 2</span>
+    <h2>Deploy the bundle</h2>
+<pre data-od-id="deploy-cmd"><code><span class="c"># from the obj_recg/ directory · target dev (also prod)</span>
+databricks bundle validate <span class="k">-t</span> dev <span class="k">-p</span> SLED_fe_demo
+databricks bundle deploy   <span class="k">-t</span> dev <span class="k">-p</span> SLED_fe_demo   <span class="c"># schema + volume + pipeline + job</span></code></pre>
+    <p style="margin-top:1.25rem"><code>deploy</code> stands up four schemas (<code>seeing_models_00_landing</code>, <code>01_bronze</code>, <code>02_silver</code>, <code>03_gold</code>) in the <code>rpeng_upleveling</code> catalog, a managed <code>cv_data</code> volume for raw frames and labels, a serverless Lakeflow Declarative Pipeline that runs the medallion flow, and the <code>train_and_compare</code> job that runs one task per model family.</p>
+  </section>
+
+  <section class="section wrap" id="step-3" data-od-id="step-3-stage-data">
+    <span class="kicker">Step 3</span>
+    <h2>Stage the data</h2>
+    <p>The bundle does not ship training data. Before running the pipeline, stage labeled COCO video frames and game-result CSVs into the managed volume.</p>
+    <div class="table-wrap" style="margin-top:1.25rem">
+      <table class="tbl" data-od-id="volume-layout">
+        <caption>Volume layout · /Volumes/rpeng_upleveling/seeing_models_00_landing/cv_data/</caption>
+        <thead><tr><th>Path</th><th>Holds</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="mono">images/&lt;sport&gt;/&lt;split&gt;/</td>
+            <td>Extracted frames (.jpg); split is <code>train</code>, <code>val</code>, or <code>test</code></td>
+          </tr>
+          <tr>
+            <td class="mono">labels/&lt;sport&gt;/</td>
+            <td>COCO annotation JSON: <code>instances_&lt;split&gt;.json</code> for boxes, <code>person_keypoints_&lt;split&gt;.json</code> for keypoints</td>
+          </tr>
+          <tr>
+            <td class="mono">games/&lt;sport&gt;/</td>
+            <td>Game-result CSVs, the label source for the team-performance layer</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:1.25rem">For the full volume layout, file naming convention, and the field dictionary for each source type, see the <a href="arch-cv.html">computer vision architecture</a>.</p>
+  </section>
+
+  <section class="section wrap" id="step-4" data-od-id="step-4-pipeline">
+    <span class="kicker">Step 4</span>
+    <h2>The medallion pipeline</h2>
+    <p>A serverless Lakeflow Declarative Pipeline moves data through four schemas. Their numbered names sort in medallion order; the pipeline runs as a continuous stream, so new frames land automatically once you start it.</p>
+    <div class="flow" style="margin-top:1.5rem" data-od-id="cv-medallion-flow">
+      <div class="flow__step"><span class="flow__n">00</span><div><h4>Landing · <code>seeing_models_00_landing</code></h4><p>Auto Loader picks up new image files and annotation JSON from <code>cv_data</code> as they arrive, writing append-only rows keyed to a source file path.</p></div></div>
+      <div class="flow__step"><span class="flow__n">01</span><div><h4>Bronze · <code>seeing_models_01_bronze</code></h4><p>Explodes the COCO annotation structure into one row per bounding box and one row per keypoint, keyed to a frame identifier. No filtering yet; lineage back to the source file is preserved.</p></div></div>
+      <div class="flow__step"><span class="flow__n">02</span><div><h4>Silver · <code>seeing_models_02_silver</code></h4><p>Quality filters drop rows with an unknown split, a zero-area bounding box, or fewer than five visible keypoints. The result is a clean, typed, per-frame dataset ready for training.</p></div></div>
+      <div class="flow__step"><span class="flow__n">03</span><div><h4>Gold · <code>seeing_models_03_gold</code></h4><p><code>training_manifest</code>, <code>athlete_metrics</code>, and <code>team_game_features</code> are assembled as views over silver. After the training job completes, <code>model_comparison</code> (the CV leaderboard) and <code>team_predictions</code> land here as tables.</p></div></div>
+    </div>
+    <p style="margin-top:1.25rem">For the full pipeline definition, table schemas, and quality-expectation configuration, see the <a href="arch-cv.html">computer vision architecture</a>.</p>
+  </section>
+
+  <section class="section wrap" id="step-5" data-od-id="step-5-model-zoo">
+    <span class="kicker">Step 5</span>
+    <h2>The model zoo</h2>
+    <p>Nine model specs cover three axes: detection vs. pose, one-stage vs. two-stage, and 2D vs. 3D. The benchmark harness runs all of them against the same footage, then writes a single leaderboard so you can pick one on evidence rather than convention.</p>
+
+    <h3 style="margin-top:2rem">Detectors, to find the athlete and the equipment</h3>
+    <div class="table-wrap">
+      <table class="tbl" data-od-id="detectors-table">
+        <caption>Detection specs · task = detect</caption>
+        <thead><tr><th>Spec</th><th>Architecture</th><th>Type</th><th>Character</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="mono">yolo_detect</td>
+            <td>YOLO11-nano (Ultralytics)</td>
+            <td>One-stage, anchor-free</td>
+            <td>Fastest, smallest, real-time baseline.</td>
+          </tr>
+          <tr>
+            <td class="mono">cnn_detect</td>
+            <td>SSDlite · MobileNetV3-Large</td>
+            <td>One-stage, lightweight</td>
+            <td>Mobile and edge. Smallest parameter count of the torchvision family; accuracy-to-speed lower bound.</td>
+          </tr>
+          <tr>
+            <td class="mono">resnet_detect</td>
+            <td>Faster R-CNN · ResNet-50 FPN v2</td>
+            <td>Two-stage</td>
+            <td>Accuracy over latency. The established COCO benchmark; head resizes to sport-specific classes.</td>
+          </tr>
+          <tr>
+            <td class="mono">fast_rcnn_detect</td>
+            <td>Faster R-CNN fed external Selective&nbsp;Search proposals, RPN bypassed</td>
+            <td>Two-stage, classical proposals</td>
+            <td>Historical ablation: generation-1 region proposals instead of a learned RPN, for teaching and comparison.</td>
+          </tr>
+          <tr>
+            <td class="mono">rtdetr_detect</td>
+            <td>RT-DETR large</td>
+            <td>Transformer</td>
+            <td>Attention-based accuracy; also supplies person boxes to the top-down pose model.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:2rem">Pose models, to trace the swing</h3>
+    <div class="table-wrap">
+      <table class="tbl" data-od-id="pose-table">
+        <caption>Pose specs · task = pose / pose3d</caption>
+        <thead><tr><th>Spec</th><th>Architecture</th><th>Keypoints</th><th>Character</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="mono">yolo_pose</td>
+            <td>YOLO11-nano pose</td>
+            <td>17 COCO</td>
+            <td>End-to-end pose in one pass. Same latency edge as YOLO detection; no separate detector needed.</td>
+          </tr>
+          <tr>
+            <td class="mono">resnet_pose</td>
+            <td>Keypoint R-CNN · ResNet-50 FPN</td>
+            <td>17 COCO</td>
+            <td>Two-stage keypoints with strong localization from region proposals.</td>
+          </tr>
+          <tr>
+            <td class="mono">rtmpose_pose</td>
+            <td>RTMPose-m (MMPose), top-down</td>
+            <td>17 COCO</td>
+            <td>Highest 2D keypoint accuracy. Needs person boxes first; pairs with <code>rtdetr_detect</code>.</td>
+          </tr>
+          <tr>
+            <td class="mono">blazepose_pose3d</td>
+            <td>MediaPipe BlazePose (full)</td>
+            <td>33 landmarks with depth</td>
+            <td>3D pose: swing-plane and rotation angles 2D cannot reach. Pretrained, inference-only, CPU.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid grid-2" style="margin-top:1.5rem">
+      <div class="note" data-od-id="note-stage-tradeoff">
+        <span class="note__k">One-stage vs. two-stage</span>
+        <p>One-stage detectors predict boxes in a single forward pass: fast, deployable, marginally weaker on small or overlapping objects. Two-stage detectors propose regions and then classify them: slower, stronger localization. The leaderboard puts a number on that tradeoff for your footage.</p>
+      </div>
+      <div class="note" data-od-id="note-topdown-dep">
+        <span class="note__k">Top-down pose has a dependency</span>
+        <p>RTMPose needs a person bounding box as input. It does not detect; it refines. The job wires it to <code>rtdetr_detect</code> automatically. BlazePose is the opposite bargain: no detector, no GPU, no training, but you trade some 2D precision for depth the others cannot produce.</p>
+      </div>
+    </div>
+
+    <div class="note note--warn" style="margin-top:1.25rem" data-od-id="note-metrics">
+      <span class="note__k">How they are scored</span>
+      <p>Every model reports on the same footing: bounding-box mAP (0.50:0.95), bounding-box mAP at IoU 0.50, keypoint OKS, p50 and p95 inference latency, parameter count, on-disk size, and training seconds, via the same COCO scorer. The 3D model is down-projected to the 17 COCO keypoints for a comparable 2D score; its true 3D metric waits on 3D ground truth.</p>
+    </div>
+  </section>
+
+  <section class="section wrap" id="step-6" data-od-id="step-6-run">
+    <span class="kicker">Step 6</span>
+    <h2>Run the job</h2>
+<pre data-od-id="run-cmd"><code>databricks bundle run train_and_compare <span class="k">-t</span> dev <span class="k">-p</span> SLED_fe_demo</code></pre>
+    <p style="margin-top:1.25rem">The job launches one task per model family, each in its own isolated Python environment: <code>cv_env</code> for the core torchvision and Ultralytics models, <code>mmpose_env</code> for RTMPose, <code>mediapipe_env</code> for BlazePose, and <code>teamperf_env</code> for the XGBoost team-performance layer.</p>
+    <p>All tasks run on serverless GPU. The default accelerator is A10; the bundle falls back to classic T4 or A100 clusters when the serverless GPU quota is not available.</p>
+    <p>The <code>sport</code> parameter defaults to <code>golf</code>. To benchmark a different sport, append <code>--params sport=basketball</code> (or whichever sport you staged data for) to the run command.</p>
+    <p>Every run logs to MLflow, one experiment per model family. Metrics, artifacts, and model weights land there before the job writes the gold leaderboard.</p>
+  </section>
+
+  <section class="section wrap" id="step-7" data-od-id="step-7-leaderboard">
+    <span class="kicker">Step 7</span>
+    <h2>Read the leaderboard</h2>
+    <p>The training job writes to <code>rpeng_upleveling.seeing_models_03_gold.model_comparison</code>, one row per model per sport. The benchmarks have not been run yet. The table below shows the columns it will contain once they are.</p>
+    <div class="table-wrap" style="margin-top:1.25rem">
+      <table class="tbl" data-od-id="leaderboard-columns">
+        <caption>model_comparison · column reference (schema only; no data until you run the job)</caption>
+        <thead><tr><th>Column</th><th>What it holds</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">model_key</td><td>Registry name: <code>yolo_detect</code>, <code>rtmpose_pose</code>, etc.</td></tr>
+          <tr><td class="mono">family</td><td>Architecture family: yolo, cnn, resnet, rtdetr, rtmpose, blazepose</td></tr>
+          <tr><td class="mono">task</td><td>detect, pose, or pose3d</td></tr>
+          <tr><td class="mono">detect_map</td><td>COCO bounding-box mAP (IoU 0.50:0.95)</td></tr>
+          <tr><td class="mono">detect_map50</td><td>Bounding-box mAP at IoU 0.50</td></tr>
+          <tr><td class="mono">pose_map</td><td>Pose mAP (0.50:0.95), for two-stage pose models</td></tr>
+          <tr><td class="mono">pose_oks</td><td>Object Keypoint Similarity</td></tr>
+          <tr><td class="mono">latency</td><td>Median inference time in ms (p50)</td></tr>
+          <tr><td class="mono">params</td><td>Parameter count</td></tr>
+          <tr><td class="mono">size</td><td>On-disk checkpoint size in MB</td></tr>
+          <tr><td class="mono">train_seconds</td><td>Total wall time for the training task</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:1.25rem">Team-performance predictions land in <code>rpeng_upleveling.seeing_models_03_gold.team_predictions</code>, one row per game per sport, with predicted values for each of the seven targets.</p>
+  </section>
+
+  <section class="section wrap" id="step-8" data-od-id="step-8-extend">
+    <span class="kicker">Step 8</span>
+    <h2>Register and extend</h2>
+    <p>After training, any model that meets the quality threshold is registered to Unity Catalog and its <code>@prod</code> alias moves to the new version automatically. Inspect the registry at <code>rpeng_upleveling.cv_models.&lt;model_key&gt;</code>.</p>
+    <p>The bundle has three extension points. Each is a one-line registry append: the dispatch, evaluation, and leaderboard code pick up the new entry on the next job run with no further changes.</p>
+    <div class="grid grid-3" style="margin-top:1.5rem">
+      <div class="card" data-od-id="extend-model">
+        <div class="card__meta">New model</div>
+        <h4>Add a <code>ModelSpec</code> to <code>_ZOO</code></h4>
+        <p>File: <code>config.py</code>. The spec declares the family, task, weight path, and Python environment. Dispatch, COCO scoring, MLflow logging, and the leaderboard row all follow automatically.</p>
+      </div>
+      <div class="card" data-od-id="extend-sport">
+        <div class="card__meta">New sport</div>
+        <h4>Add a <code>SportSpec</code> to <code>_SPORTS</code></h4>
+        <p>File: <code>sports.py</code>. The spec declares detection classes, signature events, biomechanics angles, and sport-specific post-processing. All existing models run against it on the next dispatch.</p>
+      </div>
+      <div class="card" data-od-id="extend-target">
+        <div class="card__meta">New prediction target</div>
+        <h4>Add a <code>PredictionTarget</code> to <code>_TARGETS</code></h4>
+        <p>File: <code>team_performance.py</code>. The target declares the output column, the feature set, and whether it is classification or regression. The team-performance training step picks it up automatically.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--tight wrap center" data-od-id="next">
+    <div class="hero__actions" style="justify-content:center">
+      <a class="btn btn--primary" href="kanban.html">What is left to build <span class="btn__arrow" aria-hidden="true">→</span></a>
+      <a class="btn btn--ghost" href="repo-dr.html">Dimensionality reduction repo</a>
+    </div>
+  </section>
+
+</main>
+<script src="assets/site.js"></script>
+</body>
+</html>

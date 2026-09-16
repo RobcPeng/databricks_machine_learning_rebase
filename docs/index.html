@@ -3,25 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Business value · benchmark harnesses on Databricks</title>
-<meta name="description" content="Why two Databricks Asset Bundle benchmark harnesses matter, as an education and developer-advocacy resource: choosing models on evidence, and reading outcomes with dimensionality reduction.">
+<title>Overview · benchmark harnesses on Databricks</title>
+<meta name="description" content="Two Databricks Asset Bundles that rebuild machine-learning coursework as real benchmark harnesses: a computer-vision repo and a dimensionality-reduction repo, deployed, run, and read on Databricks.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/site.css">
 </head>
-<body data-od-id="page-value">
+<body data-od-id="page-overview">
 <a class="skip" href="#main">Skip to content</a>
 
-<header class="nav">
+<header class="nav" data-od-id="nav">
   <div class="nav__inner">
     <a class="brand" href="index.html">built with Databricks</a>
     <button class="nav__toggle" aria-expanded="false" aria-controls="navlinks">Menu</button>
     <nav class="nav__links" id="navlinks" aria-label="Primary">
-      <a href="index.html" aria-current="page">Business value</a>
-      <a href="bundles.html">Bundles &amp; data</a>
-      <a href="dr-methods.html">PCA · ICA · DR</a>
-      <a href="roadmap.html">Roadmap &amp; vision</a>
+      <a href="index.html" aria-current="page">Overview</a>
+      <div class="nav__group">
+        <a href="architecture.html" class="nav__parent">Architecture</a>
+        <div class="nav__menu">
+          <a href="arch-cv.html">Computer vision</a>
+          <a href="arch-dr.html">Dimensionality reduction</a>
+        </div>
+      </div>
+      <div class="nav__group">
+        <a href="repositories.html" class="nav__parent">Repositories</a>
+        <div class="nav__menu">
+          <a href="repo-cv.html">Computer vision</a>
+          <a href="repo-dr.html">Dimensionality reduction</a>
+        </div>
+      </div>
+      <a href="kanban.html">Kanban</a>
     </nav>
   </div>
 </header>
@@ -29,118 +41,78 @@
 <main id="main">
 
   <section class="hero wrap" data-od-id="hero">
-    <span class="kicker">Business value</span>
-    <h1>Two benchmarks that teach a decision worth money<span class="dot">.</span></h1>
-    <p class="lead">This is a teaching resource, not a product. Two Databricks Asset Bundles each answer one question: which modeling approach wins on a task, and how you would know. The value is the method they demonstrate. Deploy a bundle, run one job, read a gold leaderboard, and choose a model because the numbers said so.</p>
+    <span class="kicker">Repository &amp; purpose</span>
+    <h1>Machine-learning homework, rebuilt as real benchmark harnesses<span class="dot">.</span></h1>
+    <p class="lead">This repository holds two Databricks Asset Bundles. Each takes one machine-learning task, trains a grid of models on it, and rolls every run into a single gold leaderboard. Deploy the bundle, run one job, read the comparison table, and choose a model because the numbers said so.</p>
     <div class="hero__actions">
-      <a class="btn btn--primary" href="bundles.html">See the bundles <span class="btn__arrow" aria-hidden="true">→</span></a>
-      <a class="btn btn--ghost" href="roadmap.html">Roadmap &amp; vision</a>
+      <a class="btn btn--primary" href="repositories.html">Browse the repositories <span class="btn__arrow" aria-hidden="true">→</span></a>
+      <a class="btn btn--ghost" href="kanban.html">See what is left</a>
     </div>
+  </section>
+
+  <section class="section wrap" data-od-id="why">
+    <span class="kicker">Why I built this</span>
+    <h2>Homework I wanted to do properly</h2>
+    <p class="lead">I built this to redo my machine-learning homework the way I wish I had the first time, and to do it on Databricks.</p>
+    <p>The assignments were the classics. Detect objects and trace body pose in images. Use PCA and ICA to cut a wide dataset down to the few factors that carry the signal. The first time through, they were notebooks that ran once and went stale.</p>
+    <p>So I rebuilt each one as its own Asset Bundle, with a medallion data flow, MLflow tracking every run, and one gold leaderboard that says which model actually won. Two assignments became two small, honest benchmark harnesses you can deploy, run, and read. Where a real run has not happened yet, the site says so rather than showing a made-up number.</p>
   </section>
 
   <section class="section section--tight wrap" aria-label="At a glance">
     <div class="statrow" data-od-id="stat-row">
-      <div class="stat"><div class="stat__num">2</div><div class="stat__label">Self-contained bundles</div></div>
+      <div class="stat"><div class="stat__num">2</div><div class="stat__label">Asset Bundles, one task each</div></div>
       <div class="stat"><div class="stat__num">9</div><div class="stat__label">CV model specs benchmarked</div></div>
-      <div class="stat"><div class="stat__num">192<span class="u">cells</span></div><div class="stat__label">Default dimensionality-reduction grid</div></div>
+      <div class="stat"><div class="stat__num">192<span class="u">cells</span></div><div class="stat__label">Dimensionality-reduction grid</div></div>
       <div class="stat"><div class="stat__num">4</div><div class="stat__label">Public education &amp; labor datasets</div></div>
     </div>
   </section>
 
-  <section class="section wrap" data-od-id="why-it-matters">
-    <span class="kicker">Why each bundle matters</span>
-    <h2>The payoff, stated plainly</h2>
+  <section class="section wrap" data-od-id="repositories">
+    <span class="kicker">The two repositories</span>
+    <h2>One task each, benchmarked end to end</h2>
     <div class="grid grid-2" style="margin-top:1.5rem">
-      <div class="card" data-od-id="value-obj">
-        <div class="card__meta">obj_recg · computer vision</div>
-        <h3>Choose a vision model on evidence</h3>
-        <p>Model choice in computer vision costs real money: GPU time, a latency budget, a deployment surface. This bundle turns that choice into a measurement. The same footage runs through nine model specs on one axis, with latency, size, and accuracy side by side, so a team commits to YOLO, an R-CNN, or a transformer because the leaderboard said so.</p>
-        <p>A second layer connects sight to decisions. Biomechanics and game results feed win-probability, athlete-index, and scholarship-ROI models, which shows learners how a computer-vision pipeline reaches an operational question.</p>
-      </div>
-      <div class="card" data-od-id="value-pca">
-        <div class="card__meta">pca_ica · dimensionality reduction</div>
-        <h3>Test whether a method helps before you trust it</h3>
-        <p>Analysts get handed wide, messy survey and administrative data and asked which factors drive an outcome. This bundle answers the prior question first: does compressing the feature space with PCA, ICA, or random projection actually improve the prediction, and which factors carry the signal?</p>
-        <p>It runs on public, governed, reproducible data and also runs off-platform for fast local iteration, so anyone can read it line by line and adapt the pattern to their own records.</p>
-      </div>
-    </div>
-    <div class="note" style="margin-top:1.5rem">
-      <span class="note__k">The shared value</span>
-      <p>A benchmark harness is cheap insurance. It replaces "we think this model is best" with a leaderboard, keeps the choice reproducible and governed under Unity Catalog, and stays useful as the field grows, since adding a model, dataset, or reducer is a one-line registry append.</p>
+      <a class="card card--link" href="repo-cv.html" data-od-id="repo-card-cv">
+        <div class="card__meta">obj_recg · uplevels_cv · serverless GPU</div>
+        <h3>Computer vision</h3>
+        <p>Locate the athlete and equipment, trace the pose keypoints of a golf swing, then predict team and athlete performance from what the camera saw. Benchmarks YOLO11, R-CNN families, a lightweight CNN, a transformer detector, and 2D and 3D pose models.</p>
+        <span class="card__more">Zero to hero →</span>
+      </a>
+      <a class="card card--link" href="repo-dr.html" data-od-id="repo-card-dr">
+        <div class="card__meta">pca_ica · dr_bench · serverless CPU + local</div>
+        <h3>Dimensionality reduction</h3>
+        <p>Predict whether a graduate, an institution, or a student lands an above-median outcome, and measure whether PCA, ICA, random projection, or clustering-derived features help the classic models get there.</p>
+        <span class="card__more">Zero to hero →</span>
+      </a>
     </div>
   </section>
 
-  <section class="section wrap" data-od-id="who-for">
-    <span class="kicker">What this is</span>
-    <h2>Education and developer advocacy</h2>
-    <p class="lead">These bundles exist to teach a pattern, not to ship a feature. They give a practitioner two worked, end-to-end examples of the Databricks workflow: Asset Bundles for deployment, a medallion flow for data, MLflow for tracking, and Unity Catalog for governance.</p>
+  <section class="section wrap" data-od-id="purpose">
+    <span class="kicker">Purpose, summarized</span>
+    <h2>What it is for, and who it is for</h2>
+    <p class="lead">This is an education and developer-advocacy resource, not a product. It teaches a pattern: how to benchmark a family of models fairly, track every run, and govern the winner, twice over, on real public data.</p>
     <div class="grid grid-3" style="margin-top:1.25rem">
-      <div class="card"><div class="card__meta">for</div><h4>Data scientists &amp; ML engineers</h4><p class="muted small">A reference for how to benchmark model families fairly and register the winner, on serverless compute.</p></div>
-      <div class="card"><div class="card__meta">for</div><h4>Developer advocates &amp; SAs</h4><p class="muted small">Two demo-ready bundles that show the platform pattern end to end, with real public data and honest results.</p></div>
-      <div class="card"><div class="card__meta">for</div><h4>Analysts &amp; students</h4><p class="muted small">A grounded walk-through of what PCA, ICA, and the common classifiers do, and when each earns its place.</p></div>
+      <div class="card"><div class="card__meta">for</div><h4>Data scientists &amp; ML engineers</h4><p class="muted small">A reference for benchmarking model families and registering the winner, on serverless compute.</p></div>
+      <div class="card"><div class="card__meta">for</div><h4>Developer advocates &amp; SAs</h4><p class="muted small">Two demo-ready bundles that show the Databricks pattern end to end, with real data and honest results.</p></div>
+      <div class="card"><div class="card__meta">for</div><h4>Analysts &amp; students</h4><p class="muted small">A grounded walk-through of what the detectors, pose models, reducers, and classifiers do.</p></div>
     </div>
   </section>
 
-  <section class="section wrap" data-od-id="the-shape">
+  <section class="section wrap" data-od-id="shape">
     <span class="kicker">The shape</span>
     <h2>Same three moves, both times</h2>
     <p class="lead">The two bundles share no code. Each has its own <code>databricks.yml</code>, package, and job. What they share is a rhythm.</p>
     <div class="flow" data-od-id="shape-flow">
       <div class="flow__step"><span class="flow__n">01</span><div><h4>Deploy the bundle</h4><p>One command stands up the schema, volume, pipeline, and job under the <code>rpeng_upleveling</code> catalog.</p></div></div>
-      <div class="flow__step"><span class="flow__n">02</span><div><h4>Run one job</h4><p>A single job fans out across the model grid on serverless compute (GPU for vision, CPU for the classic sweep) and logs each run to MLflow.</p></div></div>
+      <div class="flow__step"><span class="flow__n">02</span><div><h4>Run one job</h4><p>A single job fans out across the model grid on serverless compute, GPU for vision and CPU for the classic sweep, and logs each run to MLflow.</p></div></div>
       <div class="flow__step"><span class="flow__n">03</span><div><h4>Read the gold leaderboard</h4><p>The last task writes a comparison table to the gold schema. One row per model, the metrics side by side.</p></div></div>
     </div>
-  </section>
-
-  <section class="section wrap" data-od-id="learn">
-    <span class="kicker">Where to go next</span>
-    <h2>A path through the material</h2>
-    <div class="grid grid-3" style="margin-top:1.5rem">
-      <a class="card card--link" href="bundles.html"><h3>Bundles &amp; data</h3><p class="muted">Both bundles in depth: the datasets and domain, the medallion flow, the infrastructure, and the vision model zoo.</p><span class="card__more">Start here →</span></a>
-      <a class="card card--link" href="dr-methods.html"><h3>PCA · ICA · dimensionality reduction</h3><p class="muted">The reducers, the classic classifiers, and how reducing the feature space surfaces which actions move an outcome.</p><span class="card__more">The method →</span></a>
-      <a class="card card--link" href="roadmap.html"><h3>Roadmap &amp; vision</h3><p class="muted">What is built, what is stubbed, what to build next, and where the pattern reuses across education.</p><span class="card__more">Look ahead →</span></a>
-    </div>
-  </section>
-
-  <section class="section wrap" data-od-id="conventions">
-    <span class="kicker">Shared conventions</span>
-    <h2>What holds both bundles together</h2>
-    <dl class="dl" style="margin-top:1rem">
-      <dt>Asset Bundles</dt><dd>Each bundle declares its schemas, volume, pipeline, and job under <code>resources/</code> and deploys with the Databricks CLI. No shared code, so you run them independently.</dd>
-      <dt>Medallion + MLflow</dt><dd>A bronze, silver, gold flow feeds training; every run logs to MLflow; the final task writes a gold comparison table.</dd>
-      <dt>Catalog</dt><dd>One catalog, <code>rpeng_upleveling</code>, with one schema family per bundle.</dd>
-      <dt>Registry-driven</dt><dd>Add a model, dataset, or reducer by appending one entry to a registry. Dispatch, evaluation, and the leaderboard pick it up.</dd>
-    </dl>
-    <div class="note note--warn" style="margin-top:1.75rem">
-      <span class="note__k">Honest status</span>
-      <p>These are benchmark harnesses. The grids, pipelines, and leaderboard plumbing are wired end to end, but several trainers, evaluators, and gold features are still stubbed, and no results are published here. The <a href="roadmap.html">roadmap</a> lists what is implemented versus what remains. No invented numbers stand in for a run that has not happened.</p>
+    <div class="hero__actions" style="margin-top:2rem">
+      <a class="btn btn--primary" href="architecture.html">Architecture &amp; diagrams <span class="btn__arrow" aria-hidden="true">→</span></a>
+      <a class="btn btn--ghost" href="repositories.html">Repositories</a>
     </div>
   </section>
 
 </main>
-
-<footer class="foot">
-  <div class="foot__inner">
-    <div class="foot__col">
-      <div class="foot__brand">built with Databricks</div>
-      <p class="foot__note">An education and developer-advocacy resource: two Databricks Asset Bundles that benchmark models for computer vision and dimensionality reduction.</p>
-    </div>
-    <div class="foot__col">
-      <h4>The site</h4>
-      <a href="index.html">Business value</a>
-      <a href="bundles.html">Bundles &amp; data</a>
-      <a href="dr-methods.html">PCA · ICA · DR</a>
-    </div>
-    <div class="foot__col">
-      <h4>Going further</h4>
-      <a href="roadmap.html">Roadmap &amp; vision</a>
-    </div>
-    <div class="foot__col">
-      <h4>Runs on</h4>
-      <p class="foot__note">Databricks Asset Bundles, Lakeflow pipelines, MLflow, and Unity Catalog, on serverless compute.</p>
-    </div>
-  </div>
-</footer>
 
 <script src="assets/site.js"></script>
 </body>

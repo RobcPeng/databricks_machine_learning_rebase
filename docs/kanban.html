@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kanban · benchmark harnesses on Databricks</title>
+<meta name="description" content="What is shipped, what is next, and what remains across both bundles, drawn from the TODOs marked in the source.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body data-od-id="page-kanban">
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav" data-od-id="nav">
+  <div class="nav__inner">
+    <a class="brand" href="index.html">built with Databricks</a>
+    <button class="nav__toggle" aria-expanded="false" aria-controls="navlinks">Menu</button>
+    <nav class="nav__links" id="navlinks" aria-label="Primary">
+      <a href="index.html">Overview</a>
+      <div class="nav__group">
+        <a href="architecture.html" class="nav__parent">Architecture</a>
+        <div class="nav__menu">
+          <a href="arch-cv.html">Computer vision</a>
+          <a href="arch-dr.html">Dimensionality reduction</a>
+        </div>
+      </div>
+      <div class="nav__group">
+        <a href="repositories.html" class="nav__parent">Repositories</a>
+        <div class="nav__menu">
+          <a href="repo-cv.html">Computer vision</a>
+          <a href="repo-dr.html">Dimensionality reduction</a>
+        </div>
+      </div>
+      <a href="kanban.html" aria-current="page">Kanban</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero wrap" data-od-id="hero">
+    <span class="kicker">Kanban</span>
+    <h1>What is shipped, and what is left<span class="dot">.</span></h1>
+    <p class="lead">Both bundles run end to end: deploy, run, read the leaderboard. They are harnesses, so several trainers, evaluators, and gold features are still stubs. Every card below is drawn from the code and the TODOs marked in the source. Cards are tagged <span class="badge">CV</span> for the computer-vision repo and <span class="badge">DR</span> for the dimensionality-reduction repo.</p>
+  </section>
+
+  <section class="section wrap" data-od-id="board">
+    <div class="board">
+
+      <!-- SHIPPED -->
+      <div class="board__col board__col--done" data-od-id="col-shipped">
+        <div class="board__head"><h3>Shipped</h3><span class="board__count">10 done</span></div>
+        <div class="board__list">
+          <div class="ticket"><span class="badge">CV</span><p>Bundle config, four medallion schemas, managed volume, and a serverless Lakeflow pipeline.</p></div>
+          <div class="ticket"><span class="badge">CV</span><p>Landing, bronze, silver, and gold transforms with quality expectations.</p></div>
+          <div class="ticket"><span class="badge">CV</span><p>Model zoo of six families and nine specs, family dispatch, one MLflow experiment per family, Unity Catalog registration with a <code>@prod</code> alias.</p></div>
+          <div class="ticket"><span class="badge">CV</span><p>The Ultralytics (YOLO and RT-DETR) train-and-validate path and the comparison-table writer.</p></div>
+          <div class="ticket"><span class="badge">CV</span><p>Team-performance XGBoost scaffold across seven targets.</p></div>
+          <div class="ticket"><span class="badge">DR</span><p>Bundle config, three medallion schemas, idempotent setup.</p></div>
+          <div class="ticket"><span class="badge">DR</span><p>Ingest for the NSF graduate survey, Census ACS, and OECD PISA, with silver filtering and median-split labels.</p></div>
+          <div class="ticket"><span class="badge">DR</span><p>Grid expansion and the full scikit-learn pipeline (preprocess, reduce, cluster, model) with cross-validated and held-out metrics.</p></div>
+          <div class="ticket"><span class="badge">DR</span><p>Nested MLflow runs per cell, the gold <code>leaderboard</code> and <code>model_comparison</code> tables, and model-by-reducer heatmaps.</p></div>
+          <div class="ticket"><span class="badge">DR</span><p>Off-platform local run and smoke tests.</p></div>
+        </div>
+      </div>
+
+      <!-- NEXT UP -->
+      <div class="board__col" data-od-id="col-next">
+        <div class="board__head"><h3>Next up</h3><span class="board__count">4 to start</span></div>
+        <div class="board__list">
+          <div class="ticket"><span class="badge">CV</span><p>Stage COCO annotations, frames, and game CSVs per sport, and confirm the COCO and game-result field paths in silver.</p></div>
+          <div class="ticket"><span class="badge">CV</span><p>The torchvision detection training loop and its COCOeval loop (mAP and OKS for the R-CNN and CNN families).</p></div>
+          <div class="ticket"><span class="badge">DR</span><p>Restore the College Scorecard source: serverless egress does not reach its download host, so allowlist the host, stage the CSV in a volume, or switch to the Scorecard API.</p></div>
+          <div class="ticket"><span class="badge">DR</span><p>Review a completed run: does reduction beat <code>none</code>, does KMeans add lift, and how does explained variance track accuracy.</p></div>
+        </div>
+      </div>
+
+      <!-- BACKLOG -->
+      <div class="board__col" data-od-id="col-backlog">
+        <div class="board__head"><h3>Backlog</h3><span class="board__count">10 queued</span></div>
+        <div class="board__list">
+          <div class="ticket"><span class="badge">CV</span><p>YOLO and RT-DETR per-image label conversion, and Fast R-CNN external-proposal feeding.</p></div>
+          <div class="ticket"><span class="badge">CV</span><p>MMPose training and evaluation, MediaPipe evaluation, and the true 3D error metric once 3D ground truth exists.</p></div>
+          <div class="ticket"><span class="badge">CV</span><p><code>athlete_metrics</code>: biomechanics angles, an <code>athlete_id</code> roster link, and a <code>player_rating</code> label, which unlock the player-index and scholarship-ROI targets.</p></div>
+          <div class="ticket"><span class="badge">CV</span><p><code>team_game_features</code>: join aggregated athlete metrics for CV-derived team-strength features.</p></div>
+          <div class="ticket"><span class="badge">DR</span><p>Drop the superseded single-schema legacy tables from the earlier layout.</p></div>
+          <div class="ticket"><span class="badge">DR</span><p>Set <code>register_best</code> to register the top pipeline per dataset to Unity Catalog.</p></div>
+          <div class="ticket"><span class="badge">DR</span><p>Widen the grid: add <code>n_components</code> values, enable <code>svm_linear</code> and GMM clustering, and raise <code>sample_rows</code>.</p></div>
+          <div class="ticket"><span class="badge">DR</span><p>Add ACS state files, or the national file, to compare geographies.</p></div>
+          <div class="ticket"><span class="badge">DR</span><p>Schedule each job so the leaderboard refreshes on a cadence rather than a one-off run.</p></div>
+          <div class="ticket"><span class="badge">DR</span><p>Build an AI/BI dashboard over <code>model_comparison</code>; Genie can query the curated tables directly.</p></div>
+        </div>
+      </div>
+
+    </div>
+    <p class="muted small" style="margin-top:1.5rem">No results are published here. The leaderboards fill in when the jobs run; until then these cards track the work, not the scores.</p>
+  </section>
+
+  <section class="section section--tight wrap center" data-od-id="next">
+    <div class="hero__actions" style="justify-content:center">
+      <a class="btn btn--primary" href="repositories.html">Back to the repositories <span class="btn__arrow" aria-hidden="true">→</span></a>
+      <a class="btn btn--ghost" href="index.html">Overview</a>
+    </div>
+  </section>
+
+</main>
+
+<script src="assets/site.js"></script>
+</body>
+</html>
