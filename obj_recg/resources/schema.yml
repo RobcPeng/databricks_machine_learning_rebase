@@ -1,11 +1,22 @@
-# Unity Catalog schema for the benchmark. The catalog (var.catalog) must already
-# exist; DABs manage the schema and everything below it.
+# One Unity Catalog schema per medallion layer, named <project>_<numbered_layer>
+# so all the project's schemas group together and sort landing -> bronze ->
+# silver -> gold. The catalog (var.catalog) must already exist; DABs manage the
+# schemas and below.
 resources:
   schemas:
-    object_and_vision:
+    landing:
       catalog_name: ${var.catalog}
-      name: ${var.schema}
-      comment: >-
-        uplevels_cv benchmark: object-detection + pose-estimation model
-        comparison (YOLO vs ResNet R-CNN vs CNN baseline). Tables are prefixed
-        with ${var.table_prefix}_ so the leading number controls sort order.
+      name: ${var.project}_00_landing
+      comment: "uplevels_cv landing layer: raw file ingest (labels, frames, games)."
+    bronze:
+      catalog_name: ${var.catalog}
+      name: ${var.project}_01_bronze
+      comment: "uplevels_cv bronze layer: structured records (images, keypoints, games)."
+    silver:
+      catalog_name: ${var.catalog}
+      name: ${var.project}_02_silver
+      comment: "uplevels_cv silver layer: validated records."
+    gold:
+      catalog_name: ${var.catalog}
+      name: ${var.project}_03_gold
+      comment: "uplevels_cv gold layer: features, leaderboards, registered models."

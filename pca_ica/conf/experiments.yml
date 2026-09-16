@@ -1,17 +1,13 @@
-# Experiment grid for the dimensionality-reduction benchmark.
-#
-# The notebook overrides catalog / schema / table_prefix from job parameters
-# (so the same grid can target any environment). Everything below is the sweep.
-#
-# Grid size = datasets × [none + reducers×n_components] × clustering × models.
-# With the defaults: 2 × (1 + 3×1) × 2 × 6 = 96 runs. Add n_components values or
-# models to widen it; trim datasets/clustering to shrink it.
-
 task: classification
 
+# Datasets to benchmark (registered in src/dr_bench/datasets.py).
+# pisa_2022 downloads a ~600 MB SPSS file and requires pyreadstat; remove it
+# from this list to skip that cost.
 datasets:
-  - campus_placement
-  - engineering_salary
+  - nscg_2023
+  - scorecard_2026
+  - acs_co_2024
+  - pisa_2022
 
 reducers:
   - none
@@ -37,4 +33,5 @@ models:
 cv_folds: 5
 test_size: 0.2
 random_state: 42
+sample_rows: 6000
 register_best: false

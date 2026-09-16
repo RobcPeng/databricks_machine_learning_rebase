@@ -1,10 +1,10 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # 04 · Leaderboard (gold) + comparison views
+# MAGIC # 04 · Curated leaderboard + comparison views
 # MAGIC
-# MAGIC Read `*_leaderboard_gold`, write a tidy `*_model_comparison_gold` summary
-# MAGIC (best test ROC-AUC per dataset × model × reducer) for dashboards/Genie, and
-# MAGIC render model × reducer heatmaps.
+# MAGIC Read `_02_curated.leaderboard`, write a tidy `_02_curated.model_comparison`
+# MAGIC summary (best test ROC-AUC per dataset × model × reducer), and render
+# MAGIC model × reducer heatmaps.
 
 # COMMAND ----------
 
@@ -18,26 +18,24 @@ sys.path.insert(0, os.path.join(FILES_ROOT, "src"))
 CONF_PATH = os.path.join(FILES_ROOT, "conf", "experiments.yml")
 
 dbutils.widgets.text("catalog", "rpeng_upleveling")
-dbutils.widgets.text("schema", "dimensionality_reduction")
-dbutils.widgets.text("table_prefix", "00_experiment_type")
+dbutils.widgets.text("schema_prefix", "dimensionality_reduction")
 
 from dr_bench import load_config
 
 cfg = load_config(
     CONF_PATH,
     catalog=dbutils.widgets.get("catalog"),
-    schema=dbutils.widgets.get("schema"),
-    table_prefix=dbutils.widgets.get("table_prefix"),
+    schema_prefix=dbutils.widgets.get("schema_prefix"),
 )
 
 # COMMAND ----------
 
-lb = spark.sql(f"SELECT * FROM {cfg.table('leaderboard_gold')}").toPandas()
+lb = spark.sql(f"SELECT * FROM {cfg.table('curated', 'leaderboard')}").toPandas()
 display(lb.sort_values(["dataset", "test_roc_auc"], ascending=[True, False]))
 
 # COMMAND ----------
 # MAGIC %md
-# MAGIC ## Gold: best score per dataset × model × reducer
+# MAGIC ## Best score per dataset × model × reducer
 
 # COMMAND ----------
 
@@ -46,11 +44,11 @@ comparison = (
     .max()
     .sort_values(["dataset", "test_roc_auc"], ascending=[True, False])
 )
-spark.createDataFrame(comparison).createOrReplaceTempView("comp_tmp")
+spark.createDataFrame(comparison).createOrReplaceTempView("comparison_tmp")
 spark.sql(
-    f"CREATE OR REPLACE TABLE {cfg.table('model_comparison_gold')} AS SELECT * FROM comp_tmp"
+    f"CREATE OR REPLACE TABLE {cfg.table('curated', 'model_comparison')} AS SELECT * FROM comparison_tmp"
 )
-print(f"Wrote {cfg.table('model_comparison_gold')}")
+print(f"Wrote {cfg.table('curated', 'model_comparison')}")
 display(comparison)
 
 # COMMAND ----------
@@ -61,10 +59,8 @@ display(comparison)
 
 import matplotlib.pyplot as plt
 
-for ds in cfg.datasets:
+for ds in sorted(lb["dataset"].unique()):
     sub = lb[lb.dataset == ds]
-    if sub.empty:
-        continue
     pivot = sub.pivot_table(
         index="model", columns="reducer", values="test_roc_auc", aggfunc="max"
     )
@@ -78,7 +74,7 @@ for ds in cfg.datasets:
     for r in range(pivot.shape[0]):
         for c in range(pivot.shape[1]):
             v = pivot.values[r, c]
-            if v == v:  # skip NaN
+            if v == v:
                 ax.text(c, r, f"{v:.2f}", ha="center", va="center", color="white", fontsize=8)
     ax.set_title(f"{ds} — test ROC-AUC")
     fig.colorbar(im, ax=ax, shrink=0.8)

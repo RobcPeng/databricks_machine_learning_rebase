@@ -14,12 +14,25 @@ dependencies = [
 # at job time (see resources/train_compare.job.yml and the notebooks); pulled
 # locally only when you want to run training on your own machine.
 [project.optional-dependencies]
+# Ultralytics (YOLO11 + RT-DETR) and torchvision (R-CNN, SSDlite).
 train = [
     "torch>=2.4",
     "torchvision>=0.19",
-    "ultralytics>=8.3",       # YOLO11
+    "ultralytics>=8.3",       # YOLO11 + RT-DETR
     "pycocotools>=2.0.7",     # COCO mAP / OKS evaluation
     "opencv-python-headless>=4.10",
+]
+# RTMPose. mmcv must match torch+CUDA; install via OpenMIM (see 06 notebook).
+mmpose = [
+    "openmim>=0.3",
+    "mmengine>=0.10",
+    "mmcv>=2.1",
+    "mmdet>=3.3",
+    "mmpose>=1.3",
+]
+# MediaPipe BlazePose (CPU, inference-only).
+mediapipe = [
+    "mediapipe>=0.10",
 ]
 dev = [
     "pytest>=8.0",

@@ -1,11 +1,8 @@
 """Classifier registry.
 
-The linear baseline (logistic_regression), two SVMs, KNN, two tree ensembles,
-and a neural net (MLP). Sensible fixed hyperparameters — tune later with Optuna
-if you want; the point of the scaffold is the model × reducer × dataset sweep,
-not squeezing the last point of AUC out of any one model.
-
-To add a model: add a branch here and its name to MODELS.
+A linear baseline (logistic_regression), two SVMs, KNN, two tree ensembles, and
+a neural net (MLP), with fixed hyperparameters. To add a model: add a branch
+here and its name to MODELS.
 """
 
 from __future__ import annotations

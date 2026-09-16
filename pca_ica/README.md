@@ -6,110 +6,144 @@ dimensionality-reduction techniques. One config expands into a grid of
 cross-validation, logged as an MLflow run, and rolled up into a gold leaderboard.
 
 Packaged as a Databricks Asset Bundle, runs on serverless, targets the SLED
-workspace.
+workspace (`SLED_fe_demo`).
 
-## The question
+Reviewing results, the open College Scorecard egress item, and extensions are in
+[docs/NEXT_STEPS.md](docs/NEXT_STEPS.md).
 
-*Given what we know about a graduate, can we predict their placement outcome —
-and do PCA/ICA/clustering features help the classic models get there?*
+## Question
 
-Two public, no-auth datasets, both framed as one binary classification task so a
-single leaderboard is comparable across them:
+*Given what we know about a graduate, an institution, or a student, can we predict
+an above-median earnings/attainment outcome — and do PCA, ICA, random projection,
+or clustering-derived features help the classic models get there?*
 
-| Dataset | Rows | Features | Label |
-|---|---|---|---|
-| `campus_placement` — Kaggle Campus Recruitment (MBA grads) | 215 | 12 | `status` → Placed vs Not Placed |
-| `engineering_salary` — Aspiring Minds AMEO 2015 (engineering grads) | 2,998 | 13 | `Salary` → above vs below median |
+## Datasets
 
-The two differ deliberately: one is small and class-imbalanced, the other is
-larger with more numeric signal — so you can see which techniques transfer.
+Four public, US-anchored datasets, each a different "track," all reduced to one
+binary classification task so a single leaderboard is comparable across them.
+Full data dictionary in [docs/DATASETS.md](docs/DATASETS.md).
+
+| Key | Grain | Rows (usable) | Cycle | Target (label = 1) |
+|---|---|---|---|---|
+| `nscg_2023` | graduate | ~79,800 | 2023 | Above-median salary among the employed |
+| `scorecard_2026` | institution | ~4,817 | 2025–26 | Above-median graduate earnings 10 yrs out |
+| `acs_co_2024` | person (CO) | ~10–15k | 2024 | Above-median wage income among employed degree holders |
+| `pisa_2022` | student | ~600k | 2022 | Above-median expected occupational status (`BSMJ`) |
+
+Recency note: per-student, multi-institution microdata is published with a 1–2
+year lag, so `nscg_2023` is the newest available at the graduate grain.
+`scorecard_2026` reaches 2025–26 because it aggregates to the institution.
+
+`pisa_2022` downloads a ~600 MB SPSS file and requires `pyreadstat`; a dataset
+that fails to load (network, schema, missing dependency) is skipped, and the rest
+of the sweep proceeds.
 
 ## Medallion layout
 
-| Layer | Table | Contents |
+Three schemas under `rpeng_upleveling`, ordered by the number in the schema name:
+
+| Schema | Layer | Tables |
 |---|---|---|
-| Bronze | `00_experiment_type_<dataset>_bronze` | Raw CSV, landed untouched |
-| Silver | `00_experiment_type_<dataset>_silver` | Cleaned features + binary `label` |
-| Gold | `00_experiment_type_leaderboard_gold` | Every grid cell's CV + test metrics |
-| Gold | `00_experiment_type_model_comparison_gold` | Best score per dataset × model × reducer |
+| `dimensionality_reduction_00_landing` | bronze | `<dataset>` — raw source, verbatim |
+| `dimensionality_reduction_01_cleansed` | silver | `<dataset>` — filtered, cleaned, binary `label` |
+| `dimensionality_reduction_02_curated` | gold | `leaderboard`, `model_comparison` |
 
-All in `rpeng_upleveling.dimensionality_reduction`. Names are backtick-quoted
-everywhere because the prefix starts with a digit.
+Example: `rpeng_upleveling.dimensionality_reduction_00_landing.nscg_2023`. The
+schema prefix is set by the `schema_prefix` bundle variable.
 
-## Run it
+## Run
 
 ```bash
-# from this directory
 databricks bundle deploy -t sled -p SLED_fe_demo
 databricks bundle run dr_benchmark -t sled -p SLED_fe_demo
 ```
 
-`deploy` syncs the files and creates the job; `run` executes the five tasks in
-order: setup → bronze → silver → experiments → leaderboard. Results land in the
-gold tables and in an MLflow experiment at
-`/Users/<you>/dimensionality_reduction/00_experiment_type`.
+`deploy` syncs files and creates the job. `run` executes the five tasks in order:
+setup → bronze → silver → experiments → leaderboard. Results land in the gold
+tables and in an MLflow experiment at
+`/Users/<you>/dimensionality_reduction/dr_benchmark`.
 
-To validate config changes without deploying: `databricks bundle validate --strict -t sled -p SLED_fe_demo`.
+Validate config changes without deploying:
 
-## The grid
-
-Edit `conf/experiments.yml`. The defaults give **96 cells**:
-
-```
-2 datasets × (none + 3 reducers × 1 n_components) × 2 clustering × 6 models
+```bash
+databricks bundle validate --strict -t sled -p SLED_fe_demo
 ```
 
-- `reducers`: `none`, `pca`, `ica`, `random_projection`
-- `clustering`: `none`, `kmeans` (appends one-hot cluster membership as features; `gmm` also available)
-- `models`: `logistic_regression`, `svm_rbf`, `knn`, `random_forest`, `xgboost`, `mlp` (`svm_linear` also available)
-- `n_components`: list — add values like `[5, 10, 15]` to sweep reduction depth
+## Grid and configuration
 
-The `none` reducer ignores `n_components`, so it stays one cell instead of one
-per value. On these dataset sizes the full grid runs in a few minutes.
+Edit `conf/experiments.yml`. Fields:
 
-## Extend it
+| Field | Meaning |
+|---|---|
+| `datasets` | Dataset keys to benchmark (registered in `src/dr_bench/datasets.py`) |
+| `reducers` | `none`, `pca`, `ica`, `random_projection` |
+| `n_components` | List of target dimensions for reducers (the `none` reducer ignores it) |
+| `clustering` | `none`, `kmeans` (appends one-hot cluster membership); `gmm` also available |
+| `models` | `logistic_regression`, `svm_rbf`, `knn`, `random_forest`, `xgboost`, `mlp`; `svm_linear` also available |
+| `cv_folds` | Cross-validation folds |
+| `test_size` | Held-out test fraction |
+| `sample_rows` | Stratified per-dataset row cap (0 disables); bounds runtime for RBF SVM and MLP on the large files |
+| `register_best` | Register the top pipeline per dataset to Unity Catalog |
 
-Everything is a registry — add one entry, nothing else changes:
+Grid size = `datasets × [none + reducers × n_components] × clustering × models`.
+Defaults (4 × 4 × 2 × 6) = 192 cells.
 
-- **Dataset** → append a `DatasetSpec` in `src/dr_bench/datasets.py`
-- **Reducer** → add a branch in `src/dr_bench/reducers.py` + its name to `REDUCERS`
-- **Model** → add a branch in `src/dr_bench/models.py` + its name to `MODELS`
+## Extending
 
-Set `register_best: true` in the config to also register the top pipeline per
-dataset to Unity Catalog (`rpeng_upleveling.dimensionality_reduction.dr_best_<dataset>`).
+Each axis is a registry — add one entry:
+
+- Dataset → append a `DatasetSpec` in `src/dr_bench/datasets.py`; add a loader in
+  `src/dr_bench/loaders.py` if the source needs a new fetch pattern
+- Reducer → add a branch in `src/dr_bench/reducers.py` and its name to `REDUCERS`
+- Model → add a branch in `src/dr_bench/models.py` and its name to `MODELS`
+
+`register_best: true` registers the top pipeline per dataset to Unity Catalog as
+`rpeng_upleveling.dimensionality_reduction_02_curated.dr_best_<dataset>`.
 
 ## Local development
 
-The `dr_bench` package is pure scikit-learn, so it runs off-platform for fast
-iteration:
+`dr_bench` is plain scikit-learn and runs off-platform:
 
 ```bash
 pip install -r requirements.txt
 pytest tests/          # synthetic-data smoke tests, no network
 ```
 
-Off Databricks, `load_datasets` reads the CSVs directly from their source URLs;
-on Databricks it reads the `_silver` tables.
+Off Databricks, `load_datasets` fetches from the public sources; on Databricks it
+reads the `_silver` tables.
 
-## Layout
+## Repository layout
 
 ```
-databricks.yml                 bundle + sled target (profile: SLED_fe_demo)
-conf/experiments.yml           the grid
-resources/dr_benchmark.job.yml serverless job, 5 medallion tasks
-notebooks/                     00 setup · 01 bronze · 02 silver · 03 experiments · 04 leaderboard
-src/dr_bench/                  the reusable harness
-  datasets.py  reducers.py  clustering.py  models.py  pipeline.py  grid.py  experiment.py  config.py
-tests/test_smoke.py            local tests
+databricks.yml                  bundle + sled target (profile: SLED_fe_demo)
+conf/experiments.yml            the grid
+resources/dr_benchmark.job.yml  serverless job, 5 medallion tasks
+notebooks/                      00 setup · 01 bronze · 02 silver · 03 experiments · 04 leaderboard
+src/dr_bench/
+  config.py       ExperimentConfig + YAML loading
+  loaders.py      public-source download helpers (zip/csv/sav)
+  datasets.py     dataset registry, target/feature specs, bronze->silver
+  reducers.py     none / PCA / ICA / random projection
+  clustering.py   KMeans / GMM cluster-membership features
+  models.py       classifier registry
+  pipeline.py     preprocess -> reduce -> cluster -> model
+  grid.py         config -> list of experiment cells
+  experiment.py   run a cell, log to MLflow, sampling
+tests/test_smoke.py             local tests
+docs/DATASETS.md                data dictionary
 ```
 
 ## Notes
 
-- Serverless environment is pinned to client `"3"` with scikit-learn / xgboost /
-  mlflow in `resources/dr_benchmark.job.yml`. Bump the client version there if
-  the workspace defaults move on.
-- `campus_placement` drops `salary` as a feature — it only exists for placed
-  students, so it would leak the label.
-- Sources: [Campus Recruitment](https://raw.githubusercontent.com/MainakRepositor/Datasets/master/Placement_Data_Full_Class.csv),
-  [AMEO Engineering Graduate Salary](https://raw.githubusercontent.com/anuragsingh2207/dsba-jupyter-notebook/master/lpm/Revision/Dataset/Engineering_graduate_salary.csv).
+- Serverless environment is pinned to client `"3"` with scikit-learn, xgboost,
+  mlflow, matplotlib, and pyreadstat in `resources/dr_benchmark.job.yml`.
+- Targets are balanced by construction (median split), so accuracy, F1, and
+  ROC-AUC are all interpretable.
+- One-hot encoding caps at 50 categories per feature (`max_categories`), which
+  bounds dimensionality on high-cardinality codes (field of study, occupation).
+- Numeric values `>= 9,999,990` are treated as missing (survey sentinel codes).
+- `nscg_2023` restricts to employed respondents (`LFSTAT == 1`); the salary
+  sentinel `9999998` maps exactly to the non-employed and is excluded.
+- RBF SVM does not scale to the full graduate/person files, which is why
+  `sample_rows` defaults to 6,000.
 ```

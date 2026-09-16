@@ -1,13 +1,15 @@
 """Shared, model-agnostic metrics so the families are compared apples-to-apples.
 
-Every model reports the same columns into the comparison table:
+Every model reports into the same columns:
   detect_map / detect_map50  - COCO bbox mAP (pycocotools)
-  pose_map / pose_oks        - COCO keypoint OKS mAP (pose models only)
+  pose_map / pose_oks        - COCO keypoint OKS mAP (2D pose models)
+  mpjpe_mm                   - mean per-joint position error (3D pose only)
   latency_ms_p50/p95         - single-image inference latency
   params_millions, size_mb   - model footprint
 
-The mAP/OKS bodies delegate to pycocotools' COCOeval, which is the same scorer
-the COCO leaderboard uses — the fair, standard choice for detection and pose.
+mAP/OKS bodies delegate to pycocotools' COCOeval — the same scorer the COCO
+leaderboard uses. 3D models (BlazePose) are down-projected to COCO-17 for a
+comparable 2D OKS; their true 3D metric (MPJPE) needs 3D ground truth.
 """
 
 from __future__ import annotations
@@ -45,24 +47,31 @@ def benchmark_latency(predict_fn, *, imgsz: int = 640, device: str = "cuda",
 
 
 def model_footprint(model) -> dict:
-    """Parameter count (millions) and on-disk size (MB)."""
+    """Parameter count (millions) and on-disk size (MB).
+
+    Best-effort: models that aren't a torch ``nn.Module`` (MediaPipe task bundle,
+    some MMPose wrappers) return an empty dict rather than raising.
+    """
     import io
 
-    import torch
+    try:
+        import torch
 
-    from uplevels_cv.models import num_parameters
+        from uplevels_cv.models import num_parameters
 
-    torch_model = getattr(model, "model", model)
-    buf = io.BytesIO()
-    torch.save(torch_model.state_dict(), buf)
-    return {
-        "params_millions": round(num_parameters(model) / 1e6, 2),
-        "size_mb": round(buf.getbuffer().nbytes / 1e6, 2),
-    }
+        torch_model = getattr(model, "model", model)
+        buf = io.BytesIO()
+        torch.save(torch_model.state_dict(), buf)
+        return {
+            "params_millions": round(num_parameters(model) / 1e6, 2),
+            "size_mb": round(buf.getbuffer().nbytes / 1e6, 2),
+        }
+    except Exception:  # noqa: BLE001 — footprint is a nice-to-have, never fatal
+        return {}
 
 
-def evaluate_yolo(model, data, spec) -> dict:
-    """Validate a YOLO model; map Ultralytics metrics onto the shared columns."""
+def evaluate_ultralytics(model, data, spec) -> dict:
+    """Validate a YOLO or RT-DETR model; map Ultralytics metrics to shared columns."""
     metrics = model_footprint(model)
     res = model.val(verbose=False)  # runs on the val split from the data yaml
     box = getattr(res, "box", None)
@@ -86,4 +95,28 @@ def evaluate_torchvision(model, data, spec, *, device: str = "cuda") -> dict:
     # TODO: run model over data.images_dir(val); collect COCO-format results;
     #       COCOeval(gt, dt, 'bbox') -> detect_map/detect_map50, and
     #       COCOeval(gt, dt, 'keypoints') -> pose_map/pose_oks for pose models.
+    return metrics
+
+
+def evaluate_mmpose(model, data, spec) -> dict:
+    """Score an MMPose top-down model (RTMPose) on the val split, 2D OKS."""
+    metrics = model_footprint(model)
+    # TODO: run the inferencer over data.images_dir(val), collect COCO keypoint
+    #       results, COCOeval(gt, dt, 'keypoints') -> pose_map/pose_oks. Add a
+    #       single-image latency via benchmark_latency wrapping the inferencer.
+    return metrics
+
+
+def evaluate_mediapipe(model, data, spec) -> dict:
+    """Score MediaPipe BlazePose: 2D OKS on the COCO-17 projection + 3D note.
+
+    BlazePose emits 33 landmarks with depth. Down-project to COCO-17 for a
+    comparable 2D OKS; the true 3D metric (MPJPE) is left None because the COCO
+    labels here are 2D — supply a 3D-annotated set (Human3.6M or a golf 3D
+    capture) to fill mpjpe_mm.
+    """
+    metrics = {"params_millions": None}  # MediaPipe isn't a torch model
+    # TODO: run PoseLandmarker over the val frames; skeleton_blazepose.to_coco17
+    #       on each result; COCOeval('keypoints') -> pose_map/pose_oks.
+    metrics["mpjpe_mm"] = None
     return metrics

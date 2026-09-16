@@ -1,8 +1,8 @@
 """Expand a config into the list of experiment cells to run.
 
-Cross product of datasets × reducers × n_components × clustering × models, with
-one wrinkle: the `none` reducer ignores n_components, so it collapses to a
-single cell instead of one per n_components value.
+Cross product of datasets × reducers × n_components × clustering × models. The
+`none` reducer ignores n_components and collapses to a single cell rather than
+one per n_components value.
 """
 
 from __future__ import annotations

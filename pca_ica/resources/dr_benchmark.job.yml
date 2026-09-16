@@ -10,8 +10,7 @@ resources:
             notebook_path: ../notebooks/00_setup.py
             base_parameters: &params
               catalog: ${var.catalog}
-              schema: ${var.schema}
-              table_prefix: ${var.table_prefix}
+              schema_prefix: ${var.schema_prefix}
           environment_key: default
 
         - task_key: ingest_bronze
@@ -55,3 +54,4 @@ resources:
               - xgboost==2.1.3
               - mlflow==3.1.0
               - matplotlib
+              - pyreadstat

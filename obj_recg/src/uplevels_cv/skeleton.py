@@ -1,12 +1,13 @@
-"""The pose skeleton — what "lines along the limbs" actually means.
+"""The pose skeleton — the shared human keypoint layout and angle math.
 
-Uses the standard COCO 17-keypoint person layout, which every model here shares
-(YOLO11-pose and Keypoint R-CNN both emit exactly these 17 points). ``SKELETON``
-is the list of keypoint pairs to connect; drawing a line for each pair is the
-golf-swing limb overlay. ``GOLF_ANGLES`` names the joint angles a swing coach
-cares about, derived from triples of these keypoints.
+Uses the standard COCO 17-keypoint person layout, which every 2D-pose model here
+shares (YOLO11-pose and Keypoint R-CNN both emit exactly these 17 points).
+``SKELETON`` is the list of keypoint pairs to connect; drawing a line for each
+pair is the limb overlay. Per-sport biomechanics angles are defined in
+``sports.py`` (each a triple of these keypoint names) and measured by
+``joint_angle`` below.
 
-Mirror of fixtures/golf_swing_skeleton.json — keep the two in sync.
+The COCO-17 skeleton is a mirror of fixtures/golf_swing_skeleton.json.
 """
 
 from __future__ import annotations
@@ -31,16 +32,6 @@ SKELETON: list[tuple[int, int]] = [
     (KP["left_shoulder"], KP["left_hip"]),
     (KP["right_shoulder"], KP["right_hip"]),
 ]
-
-# Swing-coaching angles: (vertex, point_a, point_b) — the angle at `vertex`.
-# For a right-handed golfer the "lead" side is the left; flip for left-handed.
-GOLF_ANGLES: dict[str, tuple[str, str, str]] = {
-    "lead_arm":        ("left_elbow", "left_shoulder", "left_wrist"),
-    "trail_arm":       ("right_elbow", "right_shoulder", "right_wrist"),
-    "lead_knee_flex":  ("left_knee", "left_hip", "left_ankle"),
-    "spine_tilt":      ("left_hip", "left_shoulder", "right_hip"),
-    "hip_hinge":       ("left_hip", "left_shoulder", "left_knee"),
-}
 
 # COCO OKS per-keypoint sigmas (constants from the COCO keypoint eval spec),
 # used by the pose accuracy metric in evaluate.py.

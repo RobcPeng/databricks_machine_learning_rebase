@@ -1,8 +1,7 @@
 """Optional clustering-derived features.
 
-The classic "cluster, then learn on the augmented representation" move:
-fit KMeans or a Gaussian Mixture on the (already reduced) features and append
-one-hot cluster membership as extra columns. `none` skips the step entirely.
+Fit KMeans or a Gaussian Mixture on the (already reduced) features and append
+one-hot cluster membership as extra columns. `none` skips the step.
 """
 
 from __future__ import annotations

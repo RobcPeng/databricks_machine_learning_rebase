@@ -19,14 +19,12 @@ variables:
   catalog:
     description: Unity Catalog holding the schema, volume, and registered models.
     default: rpeng_upleveling
-  schema:
-    description: Schema for this project's data, models, and comparison tables.
-    default: object_and_vision
-  table_prefix:
+  project:
     description: >-
-      Prefix for all tables this bundle creates. The leading number controls
-      sort order in the catalog explorer (e.g. 00_seeing_models_comparison).
-    default: 00_seeing_models
+      Project name. Each medallion layer gets its own schema named
+      <project>_<numbered_layer> (e.g. seeing_models_03_gold), so the project's
+      schemas group together, sort in medallion order, and table names stay bare.
+    default: seeing_models
   volume:
     description: Managed volume for images, labels, and run artifacts.
     default: cv_data
@@ -50,13 +48,25 @@ sync:
     - fixtures/**
 
 targets:
-  # Personal iteration target. `mode: development` prefixes resource names with
-  # [dev_rob_peng] and pauses schedules. This is the default target.
+  # Personal iteration target (default). Isolated from prod by its own project
+  # namespace: dev writes to seeing_models_dev_* schemas and its own MLflow
+  # experiment; prod writes to seeing_models_*. Both targets share var.catalog,
+  # so without a distinct project a default `databricks bundle deploy` (dev)
+  # would overwrite prod's tables, volume, and registered-model @prod aliases.
+  # No `mode: development`: its forced dev_<user>_ name prefix isn't wanted; the
+  # dev-mode behaviors that are wanted are set explicitly under presets.
   dev:
-    mode: development
     default: true
+    variables:
+      project: seeing_models_dev
+      experiment_root: /Users/rob.peng@databricks.com/uplevels_cv_dev
+    presets:
+      name_prefix: ""
+      pipelines_development: true
+      trigger_pause_status: PAUSED
     workspace:
       host: https://adb-3438839487639471.11.azuredatabricks.net
+      root_path: /Workspace/Users/rob.peng@databricks.com/.bundle/${bundle.name}/${bundle.target}
 
   # Shared/scheduled target. Deploy with: databricks bundle deploy -t prod -p SLED_fe_demo
   prod:

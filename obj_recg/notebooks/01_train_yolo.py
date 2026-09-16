@@ -20,10 +20,10 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "..", "src")))
 
-for k, v in {"catalog": "rpeng_upleveling", "schema": "object_and_vision",
-             "volume": "cv_data", "table_prefix": "00_seeing_models",
+for k, v in {"catalog": "rpeng_upleveling", "project": "seeing_models",
+             "volume": "cv_data",
              "experiment_root": "/Users/rob.peng@databricks.com/uplevels_cv",
-             "gpu_type": "A10", "model_family": "yolo"}.items():
+             "gpu_type": "A10", "model_family": "yolo", "sport": "golf"}.items():
     dbutils.widgets.text(k, v)
 
 from uplevels_cv.config import Family, Paths, specs_for
@@ -31,8 +31,8 @@ from uplevels_cv.data import DataConfig
 from uplevels_cv.train import train_spec
 
 paths = Paths.from_params({k: dbutils.widgets.get(k)
-                           for k in ("catalog", "schema", "volume", "table_prefix")})
-data = DataConfig(paths=paths)
+                           for k in ("catalog", "project", "volume")})
+data = DataConfig(paths=paths, sport=dbutils.widgets.get("sport"))
 gpu_type = dbutils.widgets.get("gpu_type")
 experiment_root = dbutils.widgets.get("experiment_root")
 

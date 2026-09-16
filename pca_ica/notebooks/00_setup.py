@@ -2,8 +2,7 @@
 # MAGIC %md
 # MAGIC # 00 · Setup
 # MAGIC
-# MAGIC Create the target schema. Catalog `rpeng_upleveling` already exists; this
-# MAGIC notebook only ensures `dimensionality_reduction` is present. Idempotent.
+# MAGIC Create the three medallion schemas under the catalog. Idempotent.
 
 # COMMAND ----------
 
@@ -17,20 +16,18 @@ sys.path.insert(0, os.path.join(FILES_ROOT, "src"))
 CONF_PATH = os.path.join(FILES_ROOT, "conf", "experiments.yml")
 
 dbutils.widgets.text("catalog", "rpeng_upleveling")
-dbutils.widgets.text("schema", "dimensionality_reduction")
-dbutils.widgets.text("table_prefix", "00_experiment_type")
+dbutils.widgets.text("schema_prefix", "dimensionality_reduction")
 
 from dr_bench import load_config
 
 cfg = load_config(
     CONF_PATH,
     catalog=dbutils.widgets.get("catalog"),
-    schema=dbutils.widgets.get("schema"),
-    table_prefix=dbutils.widgets.get("table_prefix"),
+    schema_prefix=dbutils.widgets.get("schema_prefix"),
 )
 
 # COMMAND ----------
 
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS `{cfg.catalog}`.`{cfg.schema}`")
-print(f"Schema ready: {cfg.catalog}.{cfg.schema}")
-print(f"Tables will be prefixed: {cfg.table_prefix}_*")
+for schema in cfg.all_schemas():
+    spark.sql(f"CREATE SCHEMA IF NOT EXISTS `{cfg.catalog}`.`{schema}`")
+    print(f"schema ready: {cfg.catalog}.{schema}")

@@ -1,9 +1,10 @@
-"""Run experiment cells and (optionally) log them to MLflow.
+"""Run experiment cells and log them to MLflow.
 
-Datasets are loaded once into a cache. Each cell then trains its pipeline with
-k-fold cross-validation on the train split and reports held-out test metrics.
-Every cell returns a flat dict (one leaderboard row) and, when an mlflow module
-is passed, is also logged as a nested MLflow run.
+Datasets are loaded once into a cache (optionally stratified-sampled to bound
+runtime). Each cell trains its pipeline with k-fold cross-validation on the
+train split and reports held-out test metrics. Every cell returns a flat dict
+(one leaderboard row) and, when an mlflow module is passed, is logged as a
+nested MLflow run.
 """
 
 from __future__ import annotations
@@ -25,18 +26,33 @@ DatasetCache = dict[str, tuple[Any, Any, Any]]
 
 
 def load_datasets(cfg: ExperimentConfig, spark: Optional[Any] = None) -> DatasetCache:
-    """Populate the cache. On Databricks, read the cleaned `_silver` UC table;
-    off-platform (tests/local), read the public CSV and clean it in-memory."""
+    """Populate the cache. On Databricks, read each `_silver` UC table; off
+    platform, read from the public source. A dataset that fails to load is
+    skipped so it does not abort the whole sweep."""
     cache: DatasetCache = {}
     for name in cfg.datasets:
         spec = DATASETS[name]
-        if spark is not None:
-            silver = spark.sql(f"SELECT * FROM {cfg.table(f'{name}_silver')}").toPandas()
-            X, y = split_silver(silver)
-        else:
-            X, y = prepare(spec, load_raw(spec))
-        cache[name] = (spec, X, y)
+        try:
+            if spark is not None:
+                silver = spark.sql(f"SELECT * FROM {cfg.table('cleansed', name)}").toPandas()
+                X, y = split_silver(silver)
+            else:
+                X, y = prepare(spec, load_raw(spec))
+            if cfg.sample_rows and len(X) > cfg.sample_rows:
+                X, _, y, _ = train_test_split(
+                    X, y, train_size=cfg.sample_rows, stratify=y, random_state=cfg.random_state
+                )
+            cache[name] = (spec, X, y)
+            print(f"loaded {name}: {X.shape[0]} rows, {X.shape[1]} features")
+        except Exception as e:
+            print(f"[skip dataset] {name} -> {type(e).__name__}: {str(e)[:200]}")
     return cache
+
+
+def _column_types(X) -> tuple[list[str], list[str]]:
+    numeric = X.select_dtypes(include="number").columns.tolist()
+    categorical = [c for c in X.columns if c not in numeric]
+    return numeric, categorical
 
 
 def run_one(
@@ -45,22 +61,21 @@ def run_one(
     cache: DatasetCache,
     mlflow: Optional[Any] = None,
 ) -> dict:
-    dspec, X, y = cache[spec.dataset]
+    _, X, y = cache[spec.dataset]
+    numeric_cols, categorical_cols = _column_types(X)
+
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=cfg.test_size, random_state=cfg.random_state, stratify=y
     )
     pipe = build_pipeline(
-        dspec, spec.reducer, spec.n_components, spec.clustering, spec.model, cfg.random_state
+        numeric_cols, categorical_cols, spec.reducer, spec.n_components,
+        spec.clustering, spec.model, cfg.random_state,
     )
 
     t0 = time.time()
     cv = cross_validate(
-        pipe,
-        X_train,
-        y_train,
-        cv=cfg.cv_folds,
-        scoring=["accuracy", "f1", "roc_auc"],
-        error_score="raise",
+        pipe, X_train, y_train, cv=cfg.cv_folds,
+        scoring=["accuracy", "f1", "roc_auc"], error_score="raise",
     )
     cv_seconds = time.time() - t0
 
@@ -108,7 +123,5 @@ def run_one(
             mlflow.log_metrics(
                 {k: v for k, v in row.items() if isinstance(v, float) and not np.isnan(v)}
             )
-            mlflow.set_tags(
-                {"dataset": spec.dataset, "reducer": spec.reducer, "model": spec.model}
-            )
+            mlflow.set_tags({"dataset": spec.dataset, "reducer": spec.reducer, "model": spec.model})
     return row

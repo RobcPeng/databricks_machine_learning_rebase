@@ -14,12 +14,20 @@ resources:
       name: "[${bundle.target}] uplevels_cv — train & compare vision models"
       tags:
         project: uplevels_cv
-        domain: sports-pose
+        domain: sports-cv
+
+      # Run per sport: golf | football | basketball | baseball | hockey | tennis.
+      # Override at launch: databricks bundle run train_and_compare --params sport=basketball
+      # Tables carry a `sport` column, so runs accumulate across sports.
+      parameters:
+        - name: sport
+          default: golf
 
       # Shared serverless environment for every task. torch/torchvision are
       # provided by the AI Runtime GPU environment on the @distributed workers,
       # so they are intentionally NOT pinned here (avoids a CPU-torch clash).
       environments:
+        # YOLO, RT-DETR, and the torchvision families all run here.
         - environment_key: cv_env
           spec:
             client: "${var.serverless_env_version}"
@@ -28,6 +36,36 @@ resources:
               - pycocotools>=2.0.7
               - opencv-python-headless>=4.10
               - mlflow>=3.1.0
+        # RTMPose (OpenMMLab). mmcv must match the runtime's torch+CUDA. If wheel
+        # resolution fails here, install via OpenMIM in the notebook instead (the
+        # 06 notebook has the `mim install` cell).
+        - environment_key: mmpose_env
+          spec:
+            client: "${var.serverless_env_version}"
+            dependencies:
+              - openmim>=0.3
+              - mmengine>=0.10
+              - mmcv>=2.1
+              - mmdet>=3.3
+              - mmpose>=1.3
+              - pycocotools>=2.0.7
+              - mlflow>=3.1.0
+        # MediaPipe BlazePose (CPU inference-only).
+        - environment_key: mediapipe_env
+          spec:
+            client: "${var.serverless_env_version}"
+            dependencies:
+              - mediapipe>=0.10
+              - pycocotools>=2.0.7
+              - mlflow>=3.1.0
+        # Team-performance tabular models.
+        - environment_key: teamperf_env
+          spec:
+            client: "${var.serverless_env_version}"
+            dependencies:
+              - xgboost>=2.1
+              - scikit-learn>=1.5
+              - mlflow>=3.1.0
 
       tasks:
         - task_key: setup_data
@@ -35,8 +73,9 @@ resources:
             notebook_path: ../notebooks/00_setup_data.py
             base_parameters:
               catalog: ${var.catalog}
-              schema: ${var.schema}
+              project: ${var.project}
               volume: ${var.volume}
+              sport: "{{job.parameters.sport}}"
           environment_key: cv_env
 
         # Build bronze/silver/gold from the staged data before training reads it.
@@ -54,9 +93,9 @@ resources:
             base_parameters:
               model_family: yolo
               catalog: ${var.catalog}
-              schema: ${var.schema}
+              project: ${var.project}
               volume: ${var.volume}
-              table_prefix: ${var.table_prefix}
+              sport: "{{job.parameters.sport}}"
               experiment_root: ${var.experiment_root}
               gpu_type: ${var.gpu_type}
           environment_key: cv_env
@@ -69,9 +108,9 @@ resources:
             base_parameters:
               model_family: resnet
               catalog: ${var.catalog}
-              schema: ${var.schema}
+              project: ${var.project}
               volume: ${var.volume}
-              table_prefix: ${var.table_prefix}
+              sport: "{{job.parameters.sport}}"
               experiment_root: ${var.experiment_root}
               gpu_type: ${var.gpu_type}
           environment_key: cv_env
@@ -84,25 +123,85 @@ resources:
             base_parameters:
               model_family: cnn
               catalog: ${var.catalog}
-              schema: ${var.schema}
+              project: ${var.project}
               volume: ${var.volume}
-              table_prefix: ${var.table_prefix}
+              sport: "{{job.parameters.sport}}"
               experiment_root: ${var.experiment_root}
               gpu_type: ${var.gpu_type}
           environment_key: cv_env
+
+        - task_key: train_rtdetr
+          depends_on:
+            - task_key: run_medallion
+          notebook_task:
+            notebook_path: ../notebooks/05_train_rtdetr.py
+            base_parameters:
+              model_family: detr
+              catalog: ${var.catalog}
+              project: ${var.project}
+              volume: ${var.volume}
+              sport: "{{job.parameters.sport}}"
+              experiment_root: ${var.experiment_root}
+              gpu_type: ${var.gpu_type}
+          environment_key: cv_env
+
+        - task_key: train_rtmpose
+          depends_on:
+            - task_key: run_medallion
+          notebook_task:
+            notebook_path: ../notebooks/06_train_rtmpose.py
+            base_parameters:
+              model_family: mmpose
+              catalog: ${var.catalog}
+              project: ${var.project}
+              volume: ${var.volume}
+              sport: "{{job.parameters.sport}}"
+              experiment_root: ${var.experiment_root}
+              gpu_type: ${var.gpu_type}
+          environment_key: mmpose_env
+
+        - task_key: eval_mediapipe
+          depends_on:
+            - task_key: run_medallion
+          notebook_task:
+            notebook_path: ../notebooks/07_eval_mediapipe.py
+            base_parameters:
+              model_family: mediapipe
+              catalog: ${var.catalog}
+              project: ${var.project}
+              volume: ${var.volume}
+              sport: "{{job.parameters.sport}}"
+              experiment_root: ${var.experiment_root}
+          environment_key: mediapipe_env
+
+        - task_key: train_team_performance
+          depends_on:
+            - task_key: run_medallion
+          notebook_task:
+            notebook_path: ../notebooks/08_train_team_performance.py
+            base_parameters:
+              catalog: ${var.catalog}
+              project: ${var.project}
+              volume: ${var.volume}
+              experiment_root: ${var.experiment_root}
+              sport: "{{job.parameters.sport}}"
+          environment_key: teamperf_env
 
         - task_key: compare
           depends_on:
             - task_key: train_yolo
             - task_key: train_resnet
             - task_key: train_cnn
+            - task_key: train_rtdetr
+            - task_key: train_rtmpose
+            - task_key: eval_mediapipe
           notebook_task:
             notebook_path: ../notebooks/04_compare_models.py
             base_parameters:
               catalog: ${var.catalog}
-              schema: ${var.schema}
+              project: ${var.project}
               volume: ${var.volume}
-              table_prefix: ${var.table_prefix}
+              sport: "{{job.parameters.sport}}"
               experiment_root: ${var.experiment_root}
           environment_key: cv_env
 

@@ -1,19 +1,19 @@
 """Dataset access on the UC Volume + format conversion.
 
-Ground truth is stored in COCO format (one JSON per split) so both torchvision
-(native COCO) and Ultralytics (needs a YOLO-format export) can consume it.
-Volume layout under ``paths.volume_root``:
+Data is namespaced by sport. Ground truth is stored in COCO format (one JSON per
+split) so both torchvision (native COCO) and Ultralytics (YOLO-format export)
+can consume it. Volume layout under ``paths.volume_root``:
 
-    raw/          # original videos / frame dumps
-    images/       # extracted frames (train/ val/ test/)
-    labels/       # COCO json: instances_{split}.json, person_keypoints_{split}.json
-    splits/       # yolo-format export written by export_yolo_dataset()
-    artifacts/    # per-run model files, plots
-    predictions/  # scored overlays
+    raw/<sport>/           # original videos / frame dumps
+    images/<sport>/<split>/# extracted frames
+    labels/<sport>/        # COCO json: instances_<split>.json, person_keypoints_<split>.json
+    games/<sport>/         # game results for team-performance labels (CSV/parquet)
+    splits/<sport>/        # yolo-format export written by export_yolo_dataset()
+    artifacts/             # per-run model files, plots, downloaded checkpoints
+    predictions/           # scored overlays
 
-The heavy lifting (frame extraction, labeling) is a TODO — this module gives you
-the paths, the COCO loader, and the YOLO exporter so the training code is ready
-the moment labeled data lands in the volume.
+Frame extraction and labeling are a TODO; this module provides the paths, the
+COCO loader, and the YOLO exporter so training is ready once labeled data lands.
 """
 
 from __future__ import annotations
@@ -24,29 +24,39 @@ from dataclasses import dataclass
 
 from uplevels_cv.config import Paths
 from uplevels_cv.skeleton import KEYPOINT_NAMES, SKELETON
+from uplevels_cv.sports import SportSpec, sport_spec
 
 
 @dataclass
 class DataConfig:
     paths: Paths
+    sport: str = "golf"
     train_split: str = "train"
     val_split: str = "val"
 
+    @property
+    def spec(self) -> SportSpec:
+        return sport_spec(self.sport)
+
+    @property
+    def num_detect_classes(self) -> int:
+        return self.spec.num_detect_classes
+
     def images_dir(self, split: str) -> str:
-        return os.path.join(self.paths.volume_root, "images", split)
+        return os.path.join(self.paths.volume_root, "images", self.sport, split)
 
     def coco_json(self, split: str, keypoints: bool) -> str:
         stem = "person_keypoints" if keypoints else "instances"
-        return os.path.join(self.paths.volume_root, "labels", f"{stem}_{split}.json")
+        return os.path.join(self.paths.volume_root, "labels", self.sport, f"{stem}_{split}.json")
 
     def manifest(self, spark):
-        """The gold training manifest (image_id, file_name, split, counts).
+        """The gold training manifest (image_id, file_name, split, sport, counts).
 
         Built by the medallion pipeline; the split assignment lives here so every
-        model trains/evaluates on the same partition. Filter by ``split`` to get
-        each set's frames.
+        model trains/evaluates on the same partition. Filter by ``sport`` and
+        ``split`` to get each set's frames.
         """
-        return spark.table(self.paths.manifest_table.replace("`", ""))
+        return spark.table(self.paths.manifest_table).where(f"sport = '{self.sport}'")
 
 
 def load_coco(path: str) -> dict:
@@ -72,14 +82,14 @@ def export_yolo_dataset(cfg: DataConfig, keypoints: bool) -> str:
     """
     import yaml
 
-    out = os.path.join(cfg.paths.volume_root, "splits")
+    out = os.path.join(cfg.paths.volume_root, "splits", cfg.sport)
     os.makedirs(out, exist_ok=True)
 
     data_yaml = {
         "path": out,
         "train": cfg.images_dir(cfg.train_split),
         "val": cfg.images_dir(cfg.val_split),
-        "names": {0: "golfer"},  # TODO: add club/ball if labeled
+        "names": dict(enumerate(cfg.spec.detect_classes)),  # sport detection classes
     }
     if keypoints:
         data_yaml["kpt_shape"] = [len(KEYPOINT_NAMES), 3]  # (num_kpts, xyv)

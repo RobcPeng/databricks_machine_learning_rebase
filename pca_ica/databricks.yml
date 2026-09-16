@@ -6,14 +6,11 @@ include:
 
 variables:
   catalog:
-    description: UC catalog for bronze/silver/gold tables.
+    description: UC catalog for the medallion schemas.
     default: rpeng_upleveling
-  schema:
-    description: UC schema.
+  schema_prefix:
+    description: Base name for the medallion schemas (_00_landing, _01_cleansed, _02_curated).
     default: dimensionality_reduction
-  table_prefix:
-    description: Prefix applied to every table this project writes.
-    default: "00_experiment_type"
 
 targets:
   sled:
